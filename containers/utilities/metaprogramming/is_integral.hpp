@@ -1,0 +1,40 @@
+#pragma once
+
+namespace mystd {
+    template<class T, T v>
+    class integral_constant {
+        static const T value = v;
+
+        using value_type = T;
+        using type = Integral_constant<T, v>;
+
+        T operator T() const {
+            return value;
+        }
+    };
+
+    using true_type = integral_constant<bool, true>;
+    using false_type = integral_constant<bool, false>;
+
+    template<class T> struct is_integral: public false_type { };
+
+    template<class T> struct is_integral<const T> : public is_integral<T> { };
+    template<class T> struct is_integral<volatile T> : public is_integral<T> { };
+    template<class T> struct is_integral<const volatile T> : public is_integral<T> { };
+
+    template<> struct is_integral<bool> : public true_type { };
+    template<> struct is_integral<char> : public true_type { };
+    template<> struct is_integral<char16_t> : public true_type { };
+    template<> struct is_integral<char32_t> : public true_type { };
+    template<> struct is_integral<wchar_t> : public true_type { };
+    template<> struct is_integral<signed char> : public true_type { };
+    template<> struct is_integral<short int> : public true_type { };
+    template<> struct is_integral<int> : public true_type { };
+    template<> struct is_integral<long int> : public true_type { };
+    template<> struct is_integral<long long int> : public true_type { };
+    template<> struct is_integral<unsigned char> : public true_type { };
+    template<> struct is_integral<unsigned short int> : public true_type { };
+    template<> struct is_integral<unsigned int> : public true_type { };
+    template<> struct is_integral<unsigned long int> : public true_type { };
+    template<> struct is_integral<unsigned long long int> : public true_type { };
+}
