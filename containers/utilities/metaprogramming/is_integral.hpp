@@ -3,12 +3,16 @@
 namespace mystd {
     template<class T, T v>
     class integral_constant {
-        static const T value = v;
+        static constexpr T value = v;
 
         using value_type = T;
         using type = Integral_constant<T, v>;
 
-        T operator T() const {
+        constexpr operator value_type() const noexcept {
+            return value;
+        }
+
+        constexpr value_type operator()() const noexcept {
             return value;
         }
     };
