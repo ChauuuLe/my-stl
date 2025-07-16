@@ -61,6 +61,6 @@ namespace mystd {
         bool operator>=(const reverse_iterator<Iter1>& lhs,
                         const reverse_iterator<Iter2>& rhs);
     };
-
-    #include "reverse_iterator.tpp"
 }
+
+#include "reverse_iterator.tpp"

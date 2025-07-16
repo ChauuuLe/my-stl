@@ -48,6 +48,6 @@ namespace mystd {
         vector_iterator& operator+=(difference_type n);
         vector_iterator& operator-=(difference_type n);
     };
-
-    #include "vector_iterator.tpp"
 }
+
+#include "vector_iterator.tpp"
