@@ -20,7 +20,7 @@ namespace mystd {
     }
 
     template<class T>
-    vector_iterator<T>::operator vector<const T>() {
+    vector_iterator<T>::operator vector_iterator<const T>() const {
         return vector_iterator<const T>(this->ptr);
     }
 

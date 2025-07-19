@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../memory/uninitialized_memory.hpp"
 #include "../../ultilities/equal.hpp"
 #include "../../ultilities/lexigraphical_compare.hpp"
 #include "../../iterators/iterator_traits.hpp"
@@ -12,6 +13,7 @@
 #include <algorithm>
 #include <utility>
 #include <memory>
+#include <limits>
 
 namespace mystd {
     template<class T, class Allocator = std::allocator<T>>
@@ -34,16 +36,40 @@ namespace mystd {
         using const_iterator = vector_iterator<const T>;
         using reverse_iterator = reverse_iterator<iterator>;
         using const_reverse_iterator = reverse_iterator<const_iterator>;
-        
+
+        /*Iterators*/
+        iterator begin() const;
+        const_iterator cbegin() const;
+        iterator end() const;
+        const_iterator end() const;
+        reverse_iterator rbegin() const;
+        const_reverse_iterator crbegin() const;  
+        reverse_iterator rend() const;
+        const_reverse_iterator crend() const;
+
+        /*Capacity*/
+        bool empty() const;
+        size_type size() const;
+        size_type max_size() const;
+        void reserve(size_type new_cap);
+        size_type capacity() const;
+        void shrink_to_fit();
+
+        /*Member functions*/
+        allocator_type get_allocator();
+
         /*Ctors*/
         vector();
         explicit vector(const Allocator& alloc);
         explicit vector(size_type count, const Allocator& alloc = Allocator());
-        vector(size_type count, const T& value, const Allocator& alloc = Allocator());
+        vector(size_type count, const value_type& value, const Allocator& alloc = Allocator());
         template<class InputIt>
         vector(InputIt first, InputIt last, const Allocator& alloc = Allocator());
         vector(const vector& other);
         vector(vector&& other);
-        vector(std::initializer_list<T> init, const Allocator& alloc = Allocator());
+        vector(std::initializer_list<value_type> init, const Allocator& alloc = Allocator());
+
+        // Destructor
+        ~vector();
     };
 }

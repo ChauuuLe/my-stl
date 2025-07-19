@@ -23,7 +23,7 @@ namespace mystd {
 
         vector_iterator& operator=(const vector_iterator& rhs);
 
-        operator vector<const T>() const;
+        operator vector_iterator<const T>() const;
 
         vector_iterator& operator++(void);
         vector_iterator operator++(int);

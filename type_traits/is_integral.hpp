@@ -41,4 +41,9 @@ namespace mystd {
     template<> struct is_integral<unsigned int> : public true_type { };
     template<> struct is_integral<unsigned long int> : public true_type { };
     template<> struct is_integral<unsigned long long int> : public true_type { };
+
+    template<class T> struct is_lvalue_reference : false_type {};
+    template<class T> struct is_lvalue_reference<T&> : true_type {};
+    template<class T>
+    using is_lvalue_reference_v = is_lvalue_reference<T>::value;
 }
