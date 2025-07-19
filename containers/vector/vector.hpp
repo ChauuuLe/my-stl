@@ -14,6 +14,7 @@
 #include <utility>
 #include <memory>
 #include <limits>
+#include <stdexcept>
 
 namespace mystd {
     template<class T, class Allocator = std::allocator<T>>
@@ -71,5 +72,21 @@ namespace mystd {
 
         // Destructor
         ~vector();
+
+        /*Element access*/
+        reference at(size_type pos);
+        const_reference at(size_type pos) const;
+
+        reference operator[](size_type pos);
+        const_reference operator[](size_type pos) const;
+
+        reference front();
+        const_reference front() const;
+
+        reference back();
+        const_reference back() const;
+
+        pointer data();
+        const_pointer data() const;
     };
 }

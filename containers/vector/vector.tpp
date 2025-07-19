@@ -1,6 +1,5 @@
 #pragma once
 #include "vector.hpp"
-#include<memory>
 
 namespace mystd {
     /*Capacity*/
@@ -186,7 +185,7 @@ namespace mystd {
         try {
             uninitialized_copy_construct(init.begin(), this->size(), this->begin());
         } catch(...) {
-            std::allocator_traits<Allocator>::deallocate(this->allocator, this->begin(), this->nelem);
+            std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->nelem);
             throw;
         }
     }
@@ -195,6 +194,63 @@ namespace mystd {
     template<class T, class Allocator = std::allocator<T>>
     vector<T, Allocator>::~vector() {
         std::destroy(this->begin(), this->end());
-        std::allocator_traits<Allocator>::deallocate(this->allocator, this->begin(), this->capacity());
+        std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->capacity());
+    }
+
+    /*Element access*/
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::reference vector<T, Allocator>::at(size_type pos) {
+        if (pos >= this->size()) {
+            throw std::out_of_range("Access out of range for std vector");
+        } 
+        return *(this->elems + pos);
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::const_reference vector<T, Allocator>::at(size_type pos) const {
+        if (pos >= this->size()) {
+            throw std::out_of_range("Access out of range for std vector");
+        } 
+        return *(this->elems + pos);
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::reference vector<T, Allocator>::operator[](size_type pos) {
+        return *(this->elems + pos);
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::const_reference vector<T, Allocator>::operator[](size_type pos) const {
+        return *(this->elems + pos);
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::reference vector<T, Allocator>::front() {
+        return *(this->elems);
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::const_reference vector<T, Allocator>::front() const {
+        return *(this->elems);
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::reference vector<T, Allocator>::back() {
+        return *(this->elems + this->nelem - 1);
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::const_reference vector<T, Allocator>::back() const {
+        return *(this->elems + this->nelem - 1);
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::pointer vector<T, Allocator>::data() {
+        return this->elems;
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    typename vector<T, Allocator>::const_pointer vector<T, Allocator>::data() const {
+        return this->elems;
     }
 }
