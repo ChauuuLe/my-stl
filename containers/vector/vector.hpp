@@ -15,6 +15,7 @@
 #include <memory>
 #include <limits>
 #include <stdexcept>
+#include <type_traits>
 
 namespace mystd {
     template<class T, class Allocator = std::allocator<T>>
@@ -55,7 +56,11 @@ namespace mystd {
         void reserve(size_type new_cap);
         size_type capacity() const;
         void shrink_to_fit();
-
+    private:
+        size_type get_next_cap() {
+            return std::max(size() + 1, capacity() * 2);
+        }
+    public:
         /*Member functions*/
         allocator_type get_allocator();
 
@@ -71,7 +76,7 @@ namespace mystd {
         vector(std::initializer_list<value_type> init, const Allocator& alloc = Allocator());
 
         // Destructor
-        ~vector();
+        ~vector() noexcept;
 
         /*Element access*/
         reference at(size_type pos);
@@ -88,5 +93,28 @@ namespace mystd {
 
         pointer data();
         const_pointer data() const;
+
+        /*Modifiers*/
+        void clear() noexcept;
+
+        // iterator insert(const_iterator pos, const T& value);
+        // iterator insert(const_iterator pos, T&& value);
+        // iterator insert(const_iterator pos, size_type count, const T& value);
+        // template< class InputIt >
+        // iterator insert(const_iterator pos, InputIt first, InputIt last);
+        // iterator insert(const_iterator pos, std::initializer_list<T> ilist);
+
+        void push_back(const T& value);
+        void push_back(T&& value);
+
+        template<class... Args>
+        void emplace_back(Args&&... args);
+
+        void pop_back();
+
+        void resize(size_type count);
+        void resize(size_type count, const value_type& value);
+
+        void swap(const vector& other);
     };
 }

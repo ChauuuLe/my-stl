@@ -41,15 +41,22 @@ namespace mystd {
         if (new_cap <= this->cap) {
             return;
         }
-
-        pointer new_placement = std::allocator_traits<Allocator>::allocate(this->alloc, new_cap);
-
+        pointer new_buf = nullptr;
         try {
-            uninitialized_copy_construct(this->begin(), this->size(), iterator(new_placement));
+            new_buf = std::allocator_traits<Allocator>::allocate(this->alloc, new_cap);
+
+            if constexpr(std::is_nothrow_move_constructible_v<value_type> ||
+                            !std::is_copy_constructible_v<value_type>) {
+                uninitialized_move_construct(this->begin(), this->size(), iterator(new_buf));      
+            } else {
+                uninitialized_copy_construct(this->begin(), this->size(), iterator(new_buf));
+            }
             this->cap = new_cap;
-            this->elems = new_placement;
+            this->elems = new_buf;
         } catch(...) {
-            std::allocator_traits<Allocator>::deallocate(this->allocator, new_placement, new_cap);
+            if (new_buf) {
+                std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, new_cap);
+            }
         }
     }
 
@@ -66,12 +73,12 @@ namespace mystd {
 
     template<class T, class Allocator = std::allocator<T>>
     typename vector<T, Allocator>::iterator vector<T, Allocator>::end() const {
-        return iterator(this->elems + this->nlem * sizeof(T));
+        return iterator(this->elems + this->nelem * sizeof(T));
     }
 
     template<class T, class Allocator = std::allocator<T>>
     typename vector<T, Allocator>::const_iterator vector<T, Allocator>::end() const {
-        return const_iterator(this->elems + this->nlem * sizeof(T));
+        return const_iterator(this->elems + this->nelem * sizeof(T));
     }
 
     template<class T, class Allocator = std::allocator<T>>
@@ -110,14 +117,16 @@ namespace mystd {
     template<class T, class Allocator = std::allocator<T>>
     explicit vector<T, Allocator>::vector(size_type count, const Allocator& alloc = Allocator())
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
-        this->elems = std::allocator_traits<Allocator>::allocate(this->alloc, count);
-        this->cap = count;
 
         try {
+            this->elems = std::allocator_traits<Allocator>::allocate(this->alloc, count);
+            this->cap = count;
             uninitialized_default_construct(this->begin(), count);
             this->nelem = count;
         } catch(...) {
-            std::allocator_traits<Allocator>::deallocate(this->alloc, this->elems, count);
+            if (this->elems) {
+                std::allocator_traits<Allocator>::deallocate(this->alloc, this->elems, count);
+            }
             throw;
         }
     }
@@ -125,14 +134,16 @@ namespace mystd {
     template<class T, class Allocator = std::allocator<T>>
     explicit vector<T, Allocator>::vector(size_type count, const value_type& value, const Allocator& alloc = Allocator())
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
-        this->elems = std::allocator_traits<Allocator>::allocate(this->alloc, count);
-        this->cap = count;
 
         try {
+            this->elems = std::allocator_traits<Allocator>::allocate(this->alloc, count);
+            this->cap = count;
             uninitialized_copy_value_construct(value, count, this->begin());
             this->nelem = count;
         } catch(...) {
-            std::allocator_traits<Allocator>::deallocate(this->alloc, this->elems, count);
+            if (this->elems) {
+                std::allocator_traits<Allocator>::deallocate(this->alloc, this->elems, count);
+            }      
             throw;
         }
     }
@@ -141,28 +152,30 @@ namespace mystd {
     template<class InputIt>
     vector<T, Allocator>::vector(InputIt first, InputIt last, const Allocator& alloc = Allocator())
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
-        this->nelem = std::distance(first, last);
-        this->elems = std::allocator_traits<Allocator>::allocate(this->allocator, this->nelem);
-        this->cap = this->nelem;
-
+        
         try {
+            this->nelem = std::distance(first, last);
+            this->elems = std::allocator_traits<Allocator>::allocate(this->allocator, this->nelem);
+            this->cap = this->nelem;
             uninitialized_copy_construct(first, this->size(), this->begin());
         } catch(...) {
-            std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->nelem);
+            if (this->elems)
+                std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->nelem);
         }
     }
 
     template<class T, class Allocator = std::allocator<T>>
     vector<T, Allocator>::vector(const vector& other)
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(other.get_allocator())) {
-        this->nelem = other.nelem;
-        this->elems = std::allocator_traits<Allocator>::allocate(this->allocator, this->nelem);
-        this->cap = this->nelem;
-
+        
         try {
+            this->nelem = other.nelem;
+            this->elems = std::allocator_traits<Allocator>::allocate(this->allocator, this->nelem);
+            this->cap = this->nelem;   
             uninitialized_copy_construct(other.begin(), this->size(), this->begin());
         } catch(...) {
-            std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->nelem);
+            if (this->elems)
+                std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->nelem);
             throw;
         }
     }
@@ -180,19 +193,20 @@ namespace mystd {
     vector<T, Allocator>::vector(std::initializer_list<value_type> init, const Allocator& alloc = Allocator())
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)),
           nelem(init.size()), cap(init.size()) {
-        this->elems = std::allocator_traits<Allocator>::allocate(this->allocator, this->nelem);
 
         try {
+            this->elems = std::allocator_traits<Allocator>::allocate(this->allocator, this->nelem);
             uninitialized_copy_construct(init.begin(), this->size(), this->begin());
         } catch(...) {
-            std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->nelem);
+            if (this->elems)
+                std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->nelem);
             throw;
         }
     }
 
     /*Destructor*/
     template<class T, class Allocator = std::allocator<T>>
-    vector<T, Allocator>::~vector() {
+    vector<T, Allocator>::~vector() noexcept(std::is_nothrow_destructible_v<value_type>) {
         std::destroy(this->begin(), this->end());
         std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->capacity());
     }
@@ -252,5 +266,296 @@ namespace mystd {
     template<class T, class Allocator = std::allocator<T>>
     typename vector<T, Allocator>::const_pointer vector<T, Allocator>::data() const {
         return this->elems;
+    }
+
+    /*Modifiers*/
+    template<class T, class Allocator = std::allocator<T>>
+    void vector<T, Allocator>::clear() noexcept(std::is_nothrow_destructible_v<value_type>) {
+        std::destroy(this->begin(), this->end());
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    void vector<T, Allocator>::push_back(const T& value) {
+        size_type new_size = this->size() + 1;
+        if (new_size <= this->capacity()) {
+            std::allocator_traits<Allocator>::construct(this->allocator, this->elems + size(), value);
+            this->nelem = new_size;
+            return;
+        }
+
+        pointer new_buf = nullptr;
+        size_type new_cap = this->get_next_cap();
+        size_type i = 0;
+
+        try { 
+            new_buf = std::allocator_traits<Allocator>::allocate(this->allocator, new_cap);
+
+            if constexpr(std::is_nothrow_move_constructible_v<value_type> ||
+                            !std::is_copy_constructible_v<value_type>) {
+                for (; i < this->nelem; i++) {
+                    std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, std::move(*(this->elems + i)));
+                }    
+            } else {
+                for (; i < this->nelem; i++) {
+                    std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, *(this->elems + i));
+                }
+            }
+            
+            std::allocator_traits<Allocator>::construct(this->allocator, new_buf + this->nelem, value);
+        } catch (...) {
+            if (new_buf) {
+                for (size_type j = 0; j < i; j++) {
+                    std::allocator_traits<Allocator>::destroy(this->allocator, new_buf + j);
+                }
+                std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, new_cap);
+            }
+            throw;
+        }
+
+        for (size_type j = 0; j < this->nelem; ++j) {
+            std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + j);
+        }
+
+        std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->capacity());
+        this->nelem = new_size;
+        this->elems = new_buf;
+        this->cap = new_cap;
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    void vector<T, Allocator>::push_back(T&& value) {
+        this->emplace_back(std::move(value));
+    } 
+
+    template<class T, class Allocator = std::allocator<T>>
+    template<class... Args>
+    void vector<T, Allocator>::emplace_back(Args&&... args) {
+        static_assert(std::is_move_constructible_v<value_type>,
+            "value_type must be MoveConstructible");
+        
+        size_type new_size = this->size() + 1;
+        if (new_size <= this->capacity()) {
+            std::allocator_traits<Allocator>::construct(this->allocator, this->elems + size(), std::forward<Args>(args)...);
+            this->nelem = new_size;
+            return;
+        }
+
+        pointer new_buf = nullptr;
+        size_type new_cap = this->get_next_cap();
+        size_type i = 0;
+
+        try { 
+            new_buf = std::allocator_traits<Allocator>::allocate(this->allocator, new_cap);
+
+            if constexpr(std::is_nothrow_move_constructible_v<value_type> ||
+                            !std::is_copy_constructible_v<value_type>) {
+                for (; i < this->nelem; i++) {
+                    std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, std::move(*(this->elems + i)));
+                }    
+            } else {
+                for (; i < this->nelem; i++) {
+                    std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, *(this->elems + i));
+                }
+            }
+            
+            std::allocator_traits<Allocator>::construct(this->allocator, new_buf + this->nelem, std::forward<Args>(args)...);
+        } catch (...) {
+            if (new_buf) {
+                for (size_type j = 0; j < i; j++) {
+                    std::allocator_traits<Allocator>::destroy(this->allocator, new_buf + j);
+                }
+                std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, new_cap);
+            }
+            throw;
+        }
+
+        for (size_type j = 0; j < this->nelem; ++j) {
+            std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + j);
+        }
+
+        std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->capacity());
+        this->nelem = new_size;
+        this->elems = new_buf;
+        this->cap = new_cap;
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    vector<T, Allocator>::pop_back() {
+        std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + this->nelem);
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    void vector<T,Allocator>::resize(size_type count) {
+        if (count == this->nelem) {
+            return;
+        }
+
+        if (count < this->nelem) {
+            std::destroy(iterator(this->elems + count), this->end());
+            this->nelem = count;
+        } else {
+            if (count <= this->cap) {
+                size_type i = this->nelem;
+                try {
+                    for (i; i < count; i++) {
+                        std::allocator_traits<Allocator>::construct(this->allocator, this->elems + i);
+                    }
+                    this->nelem = count;
+                } catch(...) {
+                    for (size_type j = this->nelem; j < i; j++) {
+                        std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + j);
+                    }
+                    throw;
+                }
+                return;
+            }
+            static_assert(std::is_nothrow_move_constructible_v<T> || std::is_copy_constructible_v<T>,
+                "resize requires T to be nothrow-move-constructible or copy-constructible");
+
+            pointer new_buf = nullptr;
+            size_type i = 0;
+
+            try {
+                new_buf = std::allocator_traits<Allocator>::allocate(this->allocator, count);
+
+                if constexpr(std::is_nothrow_move_constructible_v<value_type> ||
+                            !std::is_copy_constructible_v<value_type>) {
+                    for (; i < this->nelem; i++) {
+                        std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, std::move(*(this->elems + i)));
+                    }    
+                } else {
+                    for (; i < this->nelem; i++) {
+                        std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, *(this->elems + i));
+                    }
+                }
+
+                for (i; i < count; i++) {
+                    std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i);
+                }
+                
+            } catch(...) {
+                if (new_buf) {
+                    for (size_type j = 0; j < i; j++) {
+                        std::allocator_traits<Allocator>::destroy(this->allocator, new_buf + j);
+                    }
+                    std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, count);
+                }
+                throw;
+            }
+
+            for (size_type j = 0; j < this->nelem; ++j) {
+                std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + j);
+            }
+
+            std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->capacity());
+
+            this->cap = count;
+            this->nelem = count;
+            this->elems = new_buf;
+        }
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    void vector<T,Allocator>::resize(size_type count, const T& value) {
+        if (count == this->nelem) {
+            return;
+        }
+
+        if (count < this->nelem) {
+            std::destroy(iterator(this->elems + count), this->end());
+            this->nelem = count;
+        } else {
+            if (count <= this->cap) {
+                size_type i = this->nelem;
+                try {
+                    for (i; i < count; i++) {
+                        std::allocator_traits<Allocator>::construct(this->allocator, this->elems + i);
+                    }
+                    this->nelem = count;
+                } catch(...) {
+                    for (size_type j = this->nelem; j < i; j++) {
+                        std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + j);
+                    }
+                    throw;
+                }
+                return;
+            }
+            static_assert(std::is_nothrow_move_constructible_v<T> || std::is_copy_constructible_v<T>,
+                "resize requires T to be nothrow-move-constructible or copy-constructible");
+
+            pointer new_buf = nullptr;
+            size_type i = 0;
+
+            try {
+                new_buf = std::allocator_traits<Allocator>::allocate(this->allocator, count);
+
+                if constexpr(std::is_nothrow_move_constructible_v<value_type> ||
+                            !std::is_copy_constructible_v<value_type>) {
+                    for (; i < this->nelem; i++) {
+                        std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, std::move(*(this->elems + i)));
+                    }    
+                } else {
+                    for (; i < this->nelem; i++) {
+                        std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, *(this->elems + i));
+                    }
+                }
+
+                for (i; i < count; i++) {
+                    std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, value);
+                }
+                
+            } catch(...) {
+                if (new_buf) {
+                    for (size_type j = 0; j < i; j++) {
+                        std::allocator_traits<Allocator>::destroy(this->allocator, new_buf + j);
+                    }
+                    std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, count);
+                }
+                throw;
+            }
+
+            for (size_type j = 0; j < this->nelem; ++j) {
+                std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + j);
+            }
+
+            std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->capacity());
+
+            this->cap = count;
+            this->nelem = count;
+            this->elems = new_buf;
+        }
+    }
+
+    template<class T, class Allocator = std::allocator<T>>
+    std::vector<T,Allocator>::swap(const vector& other) 
+        noexcept(std::allocator_traits<Allocator>::propagate_on_container_swap::value
+                || std::allocator_traits<Allocator>::is_always_equal::value) {
+        std::swap(this->elems, other.elems);
+        std::swap(this->cap, other.cap);
+        std::swap(this->nelem, other.nelem);
+
+        if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_swap::value) {
+            std::swap(this->allocator, other.allocator);
+        }
+    }
+
+    template<class T, class Allocator>
+    bool operator==(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+        return lhs.size() == rhs.size() && equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
+    template<class T, class Allocator>
+    bool operator!=(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+        return lhs.size() != rhs.size() || equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
+    template<class T, class Allocator>
+    bool operator<(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
+        return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    }
+
+    template<class T, class Allocator>
+    void swap(vector<T, Allocator>& lhs, vector<T, Allocator>& rhs) {
+        lhs.swap(rhs);
     }
 }
