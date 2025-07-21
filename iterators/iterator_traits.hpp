@@ -15,18 +15,18 @@ namespace mystd {
     template<class T>
     class iterator_traits<T*> {
         using iterator_category = std::random_access_iterator_tag;
-        using value_type = typename T;
+        using value_type = T;
         using difference_type = std::ptrdiff_t;
-        using pointer = typename T*;
-        using reference = typename T&;
+        using pointer = T*;
+        using reference = T&;
     };
 
     template<class T>
     class iterator_traits<const T*> {
         using iterator_category = std::random_access_iterator_tag;
-        using value_type = typename T;
+        using value_type = T;
         using difference_type = std::ptrdiff_t;
-        using pointer = typename const T*;
-        using reference = typename const T&;
+        using pointer = const T*;
+        using reference = const T&;
     };
 }

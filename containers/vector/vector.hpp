@@ -2,13 +2,13 @@
 
 #include "../../memory/uninitialized_memory.hpp"
 #include "../../ultilities/equal.hpp"
-#include "../../ultilities/lexigraphical_compare.hpp"
+#include "../../ultilities/lexicographical_compare.hpp"
 #include "../../iterators/iterator_traits.hpp"
 #include "../../iterators/reverse_iterator.hpp"
 #include "../../type_traits/enable_if.hpp"
 #include "../../type_traits/is_integral.hpp"
 #include "vector_iterator.hpp"
-#include <csstdef>
+#include <cstddef>
 #include <initializer_list>
 #include <algorithm>
 #include <utility>
@@ -36,17 +36,17 @@ namespace mystd {
         using const_reference = const T&;
         using iterator = vector_iterator<T>;
         using const_iterator = vector_iterator<const T>;
-        using reverse_iterator = reverse_iterator<iterator>;
-        using const_reverse_iterator = reverse_iterator<const_iterator>;
+        using reverse_iterator = mystd::reverse_iterator<iterator>;
+        using const_reverse_iterator = mystd::reverse_iterator<const_iterator>;
 
         /*Iterators*/
-        iterator begin() const;
+        iterator begin();
         const_iterator cbegin() const;
-        iterator end() const;
+        iterator end();
         const_iterator end() const;
-        reverse_iterator rbegin() const;
+        reverse_iterator rbegin();
         const_reverse_iterator crbegin() const;  
-        reverse_iterator rend() const;
+        reverse_iterator rend();
         const_reverse_iterator crend() const;
 
         /*Capacity*/
@@ -56,6 +56,7 @@ namespace mystd {
         void reserve(size_type new_cap);
         size_type capacity() const;
         void shrink_to_fit();
+
     private:
         size_type get_next_cap() {
             return std::max(size() + 1, capacity() * 2);
@@ -63,6 +64,11 @@ namespace mystd {
     public:
         /*Member functions*/
         allocator_type get_allocator();
+
+        void assign(size_type count, const value_type& value);
+        // template<class InputIt>
+        // void assign(InputIt first, Input last);
+        // void assign(std::initializer_list<T> ilist);
 
         /*Ctors*/
         vector();
@@ -76,7 +82,7 @@ namespace mystd {
         vector(std::initializer_list<value_type> init, const Allocator& alloc = Allocator());
 
         // Destructor
-        ~vector() noexcept;
+        ~vector() noexcept(std::is_nothrow_destructible_v<value_type>);
 
         /*Element access*/
         reference at(size_type pos);
@@ -95,9 +101,9 @@ namespace mystd {
         const_pointer data() const;
 
         /*Modifiers*/
-        void clear() noexcept;
+        void clear() noexcept(std::is_nothrow_destructible_v<value_type>);
 
-        // iterator insert(const_iterator pos, const T& value);
+        // iterator insert(const_iterator pos, const value_type& value);
         // iterator insert(const_iterator pos, T&& value);
         // iterator insert(const_iterator pos, size_type count, const T& value);
         // template< class InputIt >
@@ -115,6 +121,9 @@ namespace mystd {
         void resize(size_type count);
         void resize(size_type count, const value_type& value);
 
-        void swap(const vector& other);
+        void swap(vector& other) 
+                noexcept(std::allocator_traits<Allocator>::propagate_on_container_swap::value ||
+                        std::allocator_traits<Allocator>::is_always_equal::value);
     };
 }
+#include "vector.tpp"

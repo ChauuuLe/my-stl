@@ -1,5 +1,4 @@
 #pragma once
-#include "vector_iterator.hpp"
 
 namespace mystd {
     /*Contructors and destructors*/
@@ -10,7 +9,7 @@ namespace mystd {
     vector_iterator<T>::vector_iterator(const vector_iterator& rhs): ptr(rhs.ptr) {}
 
     template<class T>
-    vector_iterator<T>::vector_iterator(value_type *ptr): ptr(ptr);
+    vector_iterator<T>::vector_iterator(value_type *ptr): ptr(ptr) {}
 
     template<class T>
     vector_iterator<T>& vector_iterator<T>::operator=(const vector_iterator& rhs) {
@@ -95,12 +94,12 @@ namespace mystd {
     }
 
     template<class T>
-    typename vector_iterator<T>::reference vector_iterator<T>::operator->() const {
+    typename vector_iterator<T>::pointer vector_iterator<T>::operator->() const {
         return this->ptr;
     }
 
     template<class T>
-    vector_iterator<T> vector_iterator<T>::operator+(typename vector_iterator<T>::difference_type n) {
+    vector_iterator<T> vector_iterator<T>::operator+(typename vector_iterator<T>::difference_type n) const {
         vector_iterator<T> temp = vector_iterator<T>(*this);
         temp.ptr += n;
 
@@ -108,7 +107,7 @@ namespace mystd {
     }
 
     template<class T>
-    vector_iterator<T> vector_iterator<T>::operator-(typename vector_iterator<T>::difference_type n) {
+    vector_iterator<T> vector_iterator<T>::operator-(typename vector_iterator<T>::difference_type n) const {
         vector_iterator<T> temp = vector_iterator<T>(*this);
         temp.ptr -= n;
 

@@ -1,5 +1,4 @@
 #pragma once
-#include "reverse_iterator.hpp"
 
 namespace mystd {
     /*Constuctors*/
@@ -57,7 +56,7 @@ namespace mystd {
     template<class Iterator>
     reverse_iterator<Iterator>& reverse_iterator<Iterator>::operator+=(
             typename reverse_iterator<Iterator>::difference_type n)  {
-        this->base_iterator += n;
+        this->base_iterator -= n;
         
         return *this;
     }
@@ -65,37 +64,37 @@ namespace mystd {
     template<class Iterator>
     reverse_iterator<Iterator>& reverse_iterator<Iterator>::operator-=(
             typename reverse_iterator<Iterator>::difference_type n)  {
-        this->base_iterator -= n;
+        this->base_iterator += n;
         
         return *this;
     }
 
     template<class Iterator>
     reverse_iterator<Iterator> reverse_iterator<Iterator>::operator+(
-            typename reverse_iterator<Iterator>::difference_type n)  {
+            typename reverse_iterator<Iterator>::difference_type n)  const {
         return reverse_iterator(this.base() - n);
     }
 
     template<class Iterator>
-    reverse_iterator<Iterator>& reverse_iterator<Iterator>::operator-(
-            typename reverse_iterator<Iterator>::difference_type n)  {
+    reverse_iterator<Iterator> reverse_iterator<Iterator>::operator-(
+            typename reverse_iterator<Iterator>::difference_type n)  const {
         return reverse_iterator(this.base() + n);
     }
 
     template<class Iterator>
-    reverse_iterator<Iterator> reverse_iterator<Iterator>::operator+(
-            const reverse_iterator<Iterator>& it,
-            typename reverse_iterator<Iterator>::difference_type n
-        )  {
-        return reverse_iterator(it.base() + n);
-    }
-
-    template<class Iterator>
-    reverse_iterator<Iterator> reverse_iterator<Iterator>::operator-(
+    reverse_iterator<Iterator> operator+(
             const reverse_iterator<Iterator>& it,
             typename reverse_iterator<Iterator>::difference_type n
         )  {
         return reverse_iterator(it.base() - n);
+    }
+
+    template<class Iterator>
+    reverse_iterator<Iterator> operator-(
+            const reverse_iterator<Iterator>& it,
+            typename reverse_iterator<Iterator>::difference_type n
+        )  {
+        return reverse_iterator(it.base() + n);
     }
 
     /*Dereference operator*/

@@ -1,24 +1,23 @@
 #pragma once
-#include "vector.hpp"
 
 namespace mystd {
     /*Capacity*/
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     bool vector<T, Allocator>::empty() const {
-        return (this->nelem == true);
+        return (this->nelem == 0);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::size_type vector<T, Allocator>::size() const {
         return this->nelem;
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::size_type vector<T, Allocator>::capacity() const {
         return this->cap;
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::size_type vector<T, Allocator>::max_size() const {
         const size_type allocator_limit = std::allocator_traits<Allocator>::max_size(this->allocator);
         const size_type sys_limit = std::numeric_limits<difference_type>::max();
@@ -26,7 +25,7 @@ namespace mystd {
         return (allocator_limit < sys_limit) ? allocator_limit : sys_limit;
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     void vector<T, Allocator>::shrink_to_fit() {
         try {
             std::allocator_traits<Allocator>::deallocate(this->allocator, this->end(), this->cap - this->nelem);
@@ -36,7 +35,7 @@ namespace mystd {
         }
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     void vector<T, Allocator>::reserve(size_type new_cap) {
         if (new_cap <= this->cap) {
             return;
@@ -61,61 +60,115 @@ namespace mystd {
     }
 
     /*Iterators*/
-    template<class T, class Allocator = std::allocator<T>>
-    typename vector<T, Allocator>::iterator vector<T, Allocator>::begin() const {
+    template<class T, class Allocator>
+    typename vector<T, Allocator>::iterator vector<T, Allocator>::begin() {
         return iterator(this->elems);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::const_iterator vector<T, Allocator>::cbegin() const {
         return const_iterator(this->elems);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
-    typename vector<T, Allocator>::iterator vector<T, Allocator>::end() const {
+    template<class T, class Allocator>
+    typename vector<T, Allocator>::iterator vector<T, Allocator>::end() {
         return iterator(this->elems + this->nelem * sizeof(T));
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::const_iterator vector<T, Allocator>::end() const {
         return const_iterator(this->elems + this->nelem * sizeof(T));
     }
 
-    template<class T, class Allocator = std::allocator<T>>
-    typename vector<T, Allocator>::reverse_iterator vector<T, Allocator>::rbegin() const {
+    template<class T, class Allocator>
+    typename vector<T, Allocator>::reverse_iterator vector<T, Allocator>::rbegin() {
         return reverse_iterator(this->end());
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::const_reverse_iterator vector<T, Allocator>::crbegin() const {
         return const_reverse_iterator(this->end());
     }
     
-    template<class T, class Allocator = std::allocator<T>>
-    typename vector<T, Allocator>::reverse_iterator vector<T, Allocator>::rend() const {
+    template<class T, class Allocator>
+    typename vector<T, Allocator>::reverse_iterator vector<T, Allocator>::rend() {
         return reverse_iterator(this->begin());
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::const_reverse_iterator vector<T, Allocator>::crend() const {
         return const_reverse_iterator(this->begin());
     }
     
     /*Member function*/
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::allocator_type vector<T, Allocator>::get_allocator() {
         return this->allocator;
     }
 
+    template<class T, class Allocator>
+    void vector<T, Allocator>::assign(size_type count, const value_type& value) {
+        static_assert(std::is_copy_assignable_v<value_type> && std::is_copy_constructible_v<value_type>,
+            "Value should copy assignable and copy constructable");
+
+        if (count <= this->cap) {
+            if (count <= this->nelem) {
+                for (size_type i = 0; i < count; i++) {
+                    this->elems[i] = value;
+                }
+
+                for (size_type i = count; i < this->nelem; i++) {
+                    std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + i);
+                }
+            } else {
+                for (size_type i = 0; i < this->nelem; i++) {
+                    this->elems[i] = value;
+                }
+
+                for (size_type i = this->nelem; i < count; i++) {
+                    std::allocator_traits<Allocator>::construct(this->allocator, this->elems + i, value);
+                }
+            }
+
+            this->nelem = count;
+            return;
+        }
+
+        pointer new_buf = nullptr;
+        size_type i = 0;
+        try {
+            new_buf = std::allocator_traits<Allocator>::allocate(this->allocator, count);
+            for (; i < count; i++) {
+                std::allocator_traits<Allocator>::construct(this->allocator, new_buf + i, value);
+            }
+        } catch(...) {
+            if (new_buf) {
+                for (size_type j = 0; j < i; j++) {
+                    std::allocator_traits<Allocator>::destroy(this->allocator, new_buf + j);
+                }
+
+                std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, count);
+            }
+
+            throw;
+        }
+
+        std::destroy(this->begin(), this->end());
+        std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->cap);
+        this->nlem = count;
+        this->cap = count;
+        this->elems = new_buf;
+    }
+
     /*Ctors*/
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     vector<T, Allocator>::vector(): allocator(Allocator()), elems(nullptr), nelem(0), cap(0) {}
 
-    template<class T, class Allocator = std::allocator<T>>
-    explicit vector<T, Allocator>::vector(const Allocator& alloc): allocator(alloc), elems(nullptr), nelem(0), cap(0) {}
+    template<class T, class Allocator>
+    vector<T, Allocator>::vector(const Allocator& alloc): allocator(alloc), elems(nullptr), nelem(0), cap(0) {}
 
-    template<class T, class Allocator = std::allocator<T>>
-    explicit vector<T, Allocator>::vector(size_type count, const Allocator& alloc = Allocator())
+    template<class T, class Allocator>
+    vector<T, Allocator>::vector(size_type count, const Allocator& alloc)
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
 
         try {
@@ -131,8 +184,8 @@ namespace mystd {
         }
     }
 
-    template<class T, class Allocator = std::allocator<T>>
-    explicit vector<T, Allocator>::vector(size_type count, const value_type& value, const Allocator& alloc = Allocator())
+    template<class T, class Allocator>
+    vector<T, Allocator>::vector(size_type count, const value_type& value, const Allocator& alloc)
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
 
         try {
@@ -148,9 +201,9 @@ namespace mystd {
         }
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     template<class InputIt>
-    vector<T, Allocator>::vector(InputIt first, InputIt last, const Allocator& alloc = Allocator())
+    vector<T, Allocator>::vector(InputIt first, InputIt last, const Allocator& alloc)
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
         
         try {
@@ -164,7 +217,7 @@ namespace mystd {
         }
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     vector<T, Allocator>::vector(const vector& other)
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(other.get_allocator())) {
         
@@ -180,8 +233,8 @@ namespace mystd {
         }
     }
 
-    template<class T, class Allocator = std::allocator<T>>
-    explicit vector<T, Allocator>::vector(vector&& other)
+    template<class T, class Allocator>
+    vector<T, Allocator>::vector(vector&& other)
         : allocator(std::move(other.allocator)), nelem(other.nelem),
           cap(other.cap), elems(other.elems) {
         other.elems = nullptr;
@@ -189,8 +242,8 @@ namespace mystd {
         other.cap = 0;
     }
 
-    template<class T, class Allocator = std::allocator<T>>
-    vector<T, Allocator>::vector(std::initializer_list<value_type> init, const Allocator& alloc = Allocator())
+    template<class T, class Allocator>
+    vector<T, Allocator>::vector(std::initializer_list<value_type> init, const Allocator& alloc)
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)),
           nelem(init.size()), cap(init.size()) {
 
@@ -205,14 +258,14 @@ namespace mystd {
     }
 
     /*Destructor*/
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     vector<T, Allocator>::~vector() noexcept(std::is_nothrow_destructible_v<value_type>) {
         std::destroy(this->begin(), this->end());
         std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->capacity());
     }
 
     /*Element access*/
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::reference vector<T, Allocator>::at(size_type pos) {
         if (pos >= this->size()) {
             throw std::out_of_range("Access out of range for std vector");
@@ -220,7 +273,7 @@ namespace mystd {
         return *(this->elems + pos);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::const_reference vector<T, Allocator>::at(size_type pos) const {
         if (pos >= this->size()) {
             throw std::out_of_range("Access out of range for std vector");
@@ -228,54 +281,57 @@ namespace mystd {
         return *(this->elems + pos);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::reference vector<T, Allocator>::operator[](size_type pos) {
         return *(this->elems + pos);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::const_reference vector<T, Allocator>::operator[](size_type pos) const {
         return *(this->elems + pos);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::reference vector<T, Allocator>::front() {
         return *(this->elems);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::const_reference vector<T, Allocator>::front() const {
         return *(this->elems);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::reference vector<T, Allocator>::back() {
         return *(this->elems + this->nelem - 1);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::const_reference vector<T, Allocator>::back() const {
         return *(this->elems + this->nelem - 1);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::pointer vector<T, Allocator>::data() {
         return this->elems;
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     typename vector<T, Allocator>::const_pointer vector<T, Allocator>::data() const {
         return this->elems;
     }
 
     /*Modifiers*/
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     void vector<T, Allocator>::clear() noexcept(std::is_nothrow_destructible_v<value_type>) {
         std::destroy(this->begin(), this->end());
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     void vector<T, Allocator>::push_back(const T& value) {
+        static_assert(std::is_copy_assignable_v<value_type> && std::__is_copy_insertable<Allocator>::value,
+            "Value should be copy assignable and copy insertable");
+
         size_type new_size = this->size() + 1;
         if (new_size <= this->capacity()) {
             std::allocator_traits<Allocator>::construct(this->allocator, this->elems + size(), value);
@@ -322,16 +378,16 @@ namespace mystd {
         this->cap = new_cap;
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     void vector<T, Allocator>::push_back(T&& value) {
         this->emplace_back(std::move(value));
     } 
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     template<class... Args>
     void vector<T, Allocator>::emplace_back(Args&&... args) {
-        static_assert(std::is_move_constructible_v<value_type>,
-            "value_type must be MoveConstructible");
+        static_assert(std::is_move_constructible_v<value_type> || std::__is_move_insertable<Allocator>::value,
+            "value_type must be move insertable and move assignable");
         
         size_type new_size = this->size() + 1;
         if (new_size <= this->capacity()) {
@@ -379,12 +435,12 @@ namespace mystd {
         this->cap = new_cap;
     }
 
-    template<class T, class Allocator = std::allocator<T>>
-    vector<T, Allocator>::pop_back() {
+    template<class T, class Allocator>
+    void vector<T, Allocator>::pop_back() {
         std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + this->nelem);
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     void vector<T,Allocator>::resize(size_type count) {
         if (count == this->nelem) {
             return;
@@ -455,7 +511,7 @@ namespace mystd {
         }
     }
 
-    template<class T, class Allocator = std::allocator<T>>
+    template<class T, class Allocator>
     void vector<T,Allocator>::resize(size_type count, const T& value) {
         if (count == this->nelem) {
             return;
@@ -526,10 +582,10 @@ namespace mystd {
         }
     }
 
-    template<class T, class Allocator = std::allocator<T>>
-    std::vector<T,Allocator>::swap(const vector& other) 
-        noexcept(std::allocator_traits<Allocator>::propagate_on_container_swap::value
-                || std::allocator_traits<Allocator>::is_always_equal::value) {
+    template<class T, class Allocator>
+    void vector<T,Allocator>::swap(vector& other) 
+                noexcept(std::allocator_traits<Allocator>::propagate_on_container_swap::value  || 
+                    std::allocator_traits<Allocator>::is_always_equal::value) {
         std::swap(this->elems, other.elems);
         std::swap(this->cap, other.cap);
         std::swap(this->nelem, other.nelem);
@@ -539,6 +595,7 @@ namespace mystd {
         }
     }
 
+    /*Non-member functions*/
     template<class T, class Allocator>
     bool operator==(const vector<T, Allocator>& lhs, const vector<T, Allocator>& rhs) {
         return lhs.size() == rhs.size() && equal(lhs.begin(), lhs.end(), rhs.begin());

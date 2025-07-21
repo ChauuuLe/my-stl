@@ -36,30 +36,6 @@ namespace mystd {
         reference operator*() const;
         pointer operator->() const;
         reference operator[](difference_type n) const;
-
-        template<class Iter1, class Iter2>
-        bool operator==(const reverse_iterator<Iter1>& lhs,
-                        const reverse_iterator<Iter2>& rhs);
-        
-        template<class Iter1, class Iter2>
-        bool operator!=(const reverse_iterator<Iter1>& lhs,
-                        const reverse_iterator<Iter2>& rhs);
-        
-        template<class Iter1, class Iter2>
-        bool operator<(const reverse_iterator<Iter1>& lhs,
-                        const reverse_iterator<Iter2>& rhs);
-
-        template<class Iter1, class Iter2>
-        bool operator<=(const reverse_iterator<Iter1>& lhs,
-                        const reverse_iterator<Iter2>& rhs);
-
-        template<class Iter1, class Iter2>
-        bool operator>(const reverse_iterator<Iter1>& lhs,
-                       const reverse_iterator<Iter2>& rhs);
-
-        template<class Iter1, class Iter2>
-        bool operator>=(const reverse_iterator<Iter1>& lhs,
-                        const reverse_iterator<Iter2>& rhs);
     };
 }
 

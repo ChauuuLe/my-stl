@@ -2,6 +2,7 @@
 #include<memory>
 #include <iterator>
 #include "../type_traits/is_integral.hpp"
+#include "../type_traits/enable_if.hpp"
 #include <type_traits>
 #include <utility>
 
@@ -11,7 +12,7 @@ namespace mystd {
         return reinterpret_cast<T*>(
             &const_cast<char&>(
                 reinterpret_cast<const volatile char&>(value)
-            );
+            )
         );
     }
 

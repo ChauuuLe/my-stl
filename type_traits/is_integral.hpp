@@ -6,7 +6,7 @@ namespace mystd {
         static constexpr T value = v;
 
         using value_type = T;
-        using type = Integral_constant<T, v>;
+        using type = integral_constant<T, v>;
 
         constexpr operator value_type() const noexcept {
             return value;
@@ -45,5 +45,5 @@ namespace mystd {
     template<class T> struct is_lvalue_reference : false_type {};
     template<class T> struct is_lvalue_reference<T&> : true_type {};
     template<class T>
-    using is_lvalue_reference_v = is_lvalue_reference<T>::value;
+    using is_lvalue_reference_v = typename is_lvalue_reference<T>::value;
 }
