@@ -354,6 +354,7 @@ namespace mystd {
     template<class T, class Allocator>
     void vector<T, Allocator>::clear() noexcept(std::is_nothrow_destructible_v<value_type>) {
         std::destroy(this->begin(), this->end());
+        this->nelem = 0;
     }
 
     template<class T, class Allocator>
@@ -466,7 +467,8 @@ namespace mystd {
 
     template<class T, class Allocator>
     void vector<T, Allocator>::pop_back() {
-        std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + this->nelem);
+        std::allocator_traits<Allocator>::destroy(this->allocator, this->elems + this->nelem - 1);
+        --this->nelem;
     }
 
     template<class T, class Allocator>

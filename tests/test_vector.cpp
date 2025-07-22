@@ -29,11 +29,6 @@ static void test_constructors_and_empty_size() {
     // count ctor (default-initializes ints to 0)
     vector<int> v2(5);
     assert(v2.size() == 5);
-    std::cout << v2.capacity() << std::endl;
- 
-    for (auto &x : v2) {
-        std::cout << x << " v2 " << &x << std::endl;
-    }
 
     // fill ctor
     vector<int> v3(4, 7);
@@ -130,6 +125,7 @@ static void test_modifiers_push_pop_clear_assign() {
     assert(v.size()==3 && v.back()==3);
 
     v.pop_back();
+    std::cerr << v.size() << " " << v.back() << std::endl;
     assert(v.size()==2 && v.back()==2);
 
     v.clear();
