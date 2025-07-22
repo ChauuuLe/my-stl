@@ -33,6 +33,8 @@ namespace mystd {
             for (; count > 0; --count, ++current, ++first) {
                 ::new (static_cast<void*>(addressof(*current))) T(*first); 
             }
+
+            return current;
         } catch(...) {
             std::destroy(d_first, current);
             throw;
@@ -48,14 +50,16 @@ namespace mystd {
             for (; count > 0; --count, ++current) {
                 ::new (static_cast<void*>(addressof(*current))) U(value); 
             }
+
+            return current;
         } catch(...) {
             std::destroy(d_first, current);
             throw;
         }
     }
 
-    template<class InputIt, class Size, class ForwardIt>
-    ForwardIt uninitialized_value_construct(Size count, ForwardIt d_first) {
+    template<class Size, class ForwardIt>
+    void uninitialized_value_construct(Size count, ForwardIt d_first) {
         ForwardIt current = d_first;
         using T = typename std::iterator_traits<ForwardIt>::value_type;
 
@@ -78,14 +82,16 @@ namespace mystd {
             for (; count > 0; --count, ++current, ++first) {
                 ::new (static_cast<void*>(addressof(*current))) T(std::move(*first)); 
             }
+
+            return current;
         } catch(...) {
             std::destroy(d_first, current);
             throw;
         }
     }
 
-    template<class InputIt, class Size, class ForwardIt>
-    ForwardIt uninitialized_default_construct(Size count, ForwardIt d_first) {
+    template<class Size, class ForwardIt>
+    void uninitialized_default_construct(Size count, ForwardIt d_first) {
         ForwardIt current = d_first;
         using T = typename std::iterator_traits<ForwardIt>::value_type;
 

@@ -63,7 +63,7 @@ namespace mystd {
         }
     public:
         /*Member functions*/
-        allocator_type get_allocator();
+        allocator_type get_allocator() const;
 
         void assign(size_type count, const value_type& value);
         // template<class InputIt>
@@ -75,7 +75,7 @@ namespace mystd {
         explicit vector(const Allocator& alloc);
         explicit vector(size_type count, const Allocator& alloc = Allocator());
         vector(size_type count, const value_type& value, const Allocator& alloc = Allocator());
-        template<class InputIt>
+        template<class InputIt, class = mystd::enable_if_t<!is_integral<InputIt>::value>>
         vector(InputIt first, InputIt last, const Allocator& alloc = Allocator());
         vector(const vector& other);
         vector(vector&& other);

@@ -1,7 +1,7 @@
 # Compiler settings
 CXX       := g++
 # remove warning flags and add -w to disable all warnings
-CXXFLAGS  := -std=c++17 -w -Icontainers
+CXXFLAGS  := -std=c++17 -Icontainers
 
 # Build directories & files
 OBJDIR    := build

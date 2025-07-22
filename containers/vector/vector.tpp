@@ -28,7 +28,7 @@ namespace mystd {
     template<class T, class Allocator>
     void vector<T, Allocator>::shrink_to_fit() {
         try {
-            std::allocator_traits<Allocator>::deallocate(this->allocator, this->end(), this->cap - this->nelem);
+            std::allocator_traits<Allocator>::deallocate(this->allocator, (this->elems + this->nelem), this->cap - this->nelem);
             this->cap = this->nelem;
         } catch(...) {
             throw;
@@ -42,7 +42,7 @@ namespace mystd {
         }
         pointer new_buf = nullptr;
         try {
-            new_buf = std::allocator_traits<Allocator>::allocate(this->alloc, new_cap);
+            new_buf = std::allocator_traits<Allocator>::allocate(this->allocator, new_cap);
 
             if constexpr(std::is_nothrow_move_constructible_v<value_type> ||
                             !std::is_copy_constructible_v<value_type>) {
@@ -102,7 +102,7 @@ namespace mystd {
     
     /*Member function*/
     template<class T, class Allocator>
-    typename vector<T, Allocator>::allocator_type vector<T, Allocator>::get_allocator() {
+    typename vector<T, Allocator>::allocator_type vector<T, Allocator>::get_allocator() const {
         return this->allocator;
     }
 
@@ -155,7 +155,7 @@ namespace mystd {
 
         std::destroy(this->begin(), this->end());
         std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->cap);
-        this->nlem = count;
+        this->nelem = count;
         this->cap = count;
         this->elems = new_buf;
     }
@@ -172,13 +172,13 @@ namespace mystd {
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
 
         try {
-            this->elems = std::allocator_traits<Allocator>::allocate(this->alloc, count);
+            this->elems = std::allocator_traits<Allocator>::allocate(this->allocator, count);
             this->cap = count;
-            uninitialized_default_construct(this->begin(), count);
+            uninitialized_value_construct(count, this->begin());
             this->nelem = count;
         } catch(...) {
             if (this->elems) {
-                std::allocator_traits<Allocator>::deallocate(this->alloc, this->elems, count);
+                std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, count);
             }
             throw;
         }
@@ -189,20 +189,20 @@ namespace mystd {
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
 
         try {
-            this->elems = std::allocator_traits<Allocator>::allocate(this->alloc, count);
+            this->elems = std::allocator_traits<Allocator>::allocate(this->allocator, count);
             this->cap = count;
             uninitialized_copy_value_construct(value, count, this->begin());
             this->nelem = count;
         } catch(...) {
             if (this->elems) {
-                std::allocator_traits<Allocator>::deallocate(this->alloc, this->elems, count);
+                std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, count);
             }      
             throw;
         }
     }
 
     template<class T, class Allocator>
-    template<class InputIt>
+    template<class InputIt, class>
     vector<T, Allocator>::vector(InputIt first, InputIt last, const Allocator& alloc)
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
         
@@ -225,7 +225,7 @@ namespace mystd {
             this->nelem = other.nelem;
             this->elems = std::allocator_traits<Allocator>::allocate(this->allocator, this->nelem);
             this->cap = this->nelem;   
-            uninitialized_copy_construct(other.begin(), this->size(), this->begin());
+            uninitialized_copy_construct(other.cbegin(), this->size(), this->begin());
         } catch(...) {
             if (this->elems)
                 std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->nelem);

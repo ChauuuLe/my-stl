@@ -2,7 +2,7 @@
 
 namespace mystd {
     template<class T, T v>
-    class integral_constant {
+    struct integral_constant {
         static constexpr T value = v;
 
         using value_type = T;
