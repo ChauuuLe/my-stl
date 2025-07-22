@@ -1,5 +1,5 @@
 #pragma once
-
+#include <iostream>
 namespace mystd {
     /*Capacity*/
     template<class T, class Allocator>
@@ -27,36 +27,65 @@ namespace mystd {
 
     template<class T, class Allocator>
     void vector<T, Allocator>::shrink_to_fit() {
-        try {
-            std::allocator_traits<Allocator>::deallocate(this->allocator, (this->elems + this->nelem), this->cap - this->nelem);
-            this->cap = this->nelem;
-        } catch(...) {
-            throw;
-        }
-    }
-
-    template<class T, class Allocator>
-    void vector<T, Allocator>::reserve(size_type new_cap) {
-        if (new_cap <= this->cap) {
+        if (!this->elems || this->cap == this->nelem) {
             return;
         }
+
+        static_assert(std::is_copy_constructible_v<value_type> || std::is_nothrow_move_constructible_v<value_type>,
+                    "Elements should be copy constructible or move constructible with no throw");
+        
+        size_type new_cap = this->nelem;
         pointer new_buf = nullptr;
         try {
             new_buf = std::allocator_traits<Allocator>::allocate(this->allocator, new_cap);
 
             if constexpr(std::is_nothrow_move_constructible_v<value_type> ||
                             !std::is_copy_constructible_v<value_type>) {
-                uninitialized_move_construct(this->begin(), this->size(), iterator(new_buf));      
+                uninitialized_move_construct(this->begin(), this->nelem, iterator(new_buf));      
             } else {
-                uninitialized_copy_construct(this->begin(), this->size(), iterator(new_buf));
+                uninitialized_copy_construct(this->begin(), this->nelem, iterator(new_buf));
             }
-            this->cap = new_cap;
-            this->elems = new_buf;
         } catch(...) {
             if (new_buf) {
                 std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, new_cap);
             }
         }
+
+        std::destroy(this->begin(), this->end());
+        std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->cap);
+        this->cap = new_cap;
+        this->elems = new_buf;
+    }
+
+    template<class T, class Allocator>
+    void vector<T, Allocator>::reserve(size_type new_cap) {
+
+        if (new_cap <= this->cap) {
+            return;
+        }
+        static_assert(std::is_copy_constructible_v<value_type> || std::is_nothrow_move_constructible_v<value_type>,
+                    "Elements should be copy constructible or move constructible with no throw");
+
+        pointer new_buf = nullptr;
+        try {
+            new_buf = std::allocator_traits<Allocator>::allocate(this->allocator, new_cap);
+
+            if constexpr(std::is_nothrow_move_constructible_v<value_type> ||
+                            !std::is_copy_constructible_v<value_type>) {
+                uninitialized_move_construct(this->begin(), this->nelem, iterator(new_buf));      
+            } else {
+                uninitialized_copy_construct(this->begin(), this->nelem, iterator(new_buf));
+            }
+        } catch(...) {
+            if (new_buf) {
+                std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, new_cap);
+            }
+        }
+
+        std::destroy(this->begin(), this->end());
+        std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->cap);
+        this->cap = new_cap;
+        this->elems = new_buf;
     }
 
     /*Iterators*/
@@ -72,12 +101,12 @@ namespace mystd {
 
     template<class T, class Allocator>
     typename vector<T, Allocator>::iterator vector<T, Allocator>::end() {
-        return iterator(this->elems + this->nelem * sizeof(T));
+        return iterator(this->elems + this->nelem);
     }
 
     template<class T, class Allocator>
     typename vector<T, Allocator>::const_iterator vector<T, Allocator>::end() const {
-        return const_iterator(this->elems + this->nelem * sizeof(T));
+        return const_iterator(this->elems + this->nelem);
     }
 
     template<class T, class Allocator>

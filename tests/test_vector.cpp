@@ -29,11 +29,10 @@ static void test_constructors_and_empty_size() {
     // count ctor (default-initializes ints to 0)
     vector<int> v2(5);
     assert(v2.size() == 5);
-    for (int i = 0; i < 5; i++) {
-        std::cout << v2[i] << std::endl;
-    }
-    for (auto x : v2) {
-        std::cout << x << " " << &x << std::endl;
+    std::cout << v2.capacity() << std::endl;
+ 
+    for (auto &x : v2) {
+        std::cout << x << " v2 " << &x << std::endl;
     }
 
     // fill ctor
