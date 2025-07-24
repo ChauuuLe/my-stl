@@ -263,9 +263,9 @@ namespace mystd {
     }
 
     template<class T, class Allocator>
-    vector<T, Allocator>::vector(vector&& other)
-        : allocator(std::move(other.allocator)), nelem(other.nelem),
-          cap(other.cap), elems(other.elems) {
+    vector<T, Allocator>::vector(vector&& other) noexcept(std::allocator_traits<Allocator>::is_always_equal::value ||
+                                                            std::is_nothrow_move_constructible_v<Allocator>)
+        : allocator(std::move(other.allocator)), nelem(other.nelem), cap(other.cap), elems(other.elems) {
         other.elems = nullptr;
         other.nelem = 0;
         other.cap = 0;

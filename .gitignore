@@ -1,0 +1,8 @@
+# ignore build/tests directory
+/build/tests/
+
+# ignore the test_vector executable
+/test_vector
+
+# ignore VSCode settings folder
+/.vscode/
