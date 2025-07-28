@@ -49,6 +49,7 @@ namespace mystd {
             if (new_buf) {
                 std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, new_cap);
             }
+            throw;
         }
 
         std::destroy(this->begin(), this->end());
@@ -80,6 +81,7 @@ namespace mystd {
             if (new_buf) {
                 std::allocator_traits<Allocator>::deallocate(this->allocator, new_buf, new_cap);
             }
+            throw;
         }
 
         std::destroy(this->begin(), this->end());
@@ -243,6 +245,8 @@ namespace mystd {
         } catch(...) {
             if (this->elems)
                 std::allocator_traits<Allocator>::deallocate(this->allocator, this->elems, this->nelem);
+            
+            throw;
         }
     }
 

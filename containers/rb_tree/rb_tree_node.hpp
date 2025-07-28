@@ -15,13 +15,14 @@ namespace mystd {
     struct rb_tree_node {
         rb_tree_node *left = nullptr;
         rb_tree_node *right = nullptr;
-        rb_tree_node *parent;
+        rb_tree_node *parent = nullptr;
         bool color;
         Key value;
 
         rb_tree_node();
+
         rb_tree_node(const Key& value, bool color = RED, rb_tree_node *parent);
-        rb_tree_node(Key&& value, bool color = RED, rb_tree_node *parent);
+        rb_tree_node(Key&& value, bool color = RED, rb_tree_node *parent)
             noexcept(std::is_nothrow_move_constructible_v<Key>);
 
         rb_tree_node& operator=(const rb_tree_node& other);
@@ -30,6 +31,7 @@ namespace mystd {
 
         rb_tree_node* get_sibling() const;
         void change_color();
+        bool is_left() const;
 
         ~rb_tree_node();
     };
