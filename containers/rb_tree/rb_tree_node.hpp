@@ -6,34 +6,31 @@
 
 namespace mystd {
     /*Nodes for tree*/
-    enum node_color {
+    enum class node_color : bool {
         RED = false,
-        BLACK = true;
+        BLACK = true
+    };
+
+    struct rb_tree_node_base {
+        bool color;
+        rb_tree_node_base *left = nullptr;
+        rb_tree_node_base *right = nullptr;
+        rb_tree_node_base *parent = nullptr;
     };
 
     template<class Key>
-    struct rb_tree_node {
-        rb_tree_node *left = nullptr;
-        rb_tree_node *right = nullptr;
-        rb_tree_node *parent = nullptr;
-        bool color;
+    struct rb_tree_node: public rb_tree_node_base {
         Key value;
 
         rb_tree_node();
 
-        rb_tree_node(const Key& value, bool color = RED, rb_tree_node *parent);
-        rb_tree_node(Key&& value, bool color = RED, rb_tree_node *parent)
+        rb_tree_node(const Key& value, bool color = RED, rb_tree_node_base *parent);
+        rb_tree_node(Key&& value, bool color = RED, rb_tree_node_base *parent)
             noexcept(std::is_nothrow_move_constructible_v<Key>);
 
-        rb_tree_node& operator=(const rb_tree_node& other);
-        rb_tree_node& operator=(rb_tree_node&& other)
-            noexcept(std::is_nothrow_move_assignable_v<Key>);
-
-        rb_tree_node* get_sibling() const;
+        rb_tree_node_base* get_sibling() const;
         void change_color();
         bool is_left() const;
-
-        ~rb_tree_node();
     };
 }
 

@@ -7,8 +7,11 @@ namespace mystd {
         class Compare,
         class Allocator
     > rb_tree<Key, Compare, Allocator>::rb_tree()
-        : root(nullptr), allocator(Allocator()), compare(Compare()), min_node(nullptr), max_node(nullptr) {
-        init_nil();
+        : allocator(Allocator()), compare(Compare()), min_node(nullptr), max_node(nullptr) {
+        this->header.color = RED;
+        this->header.parent = nullptr;
+        this->header.left = &this->header;
+        this->header.right = &this->header;
     }
 
     template<
@@ -16,8 +19,11 @@ namespace mystd {
         class Compare,
         class Allocator
     > rb_tree<Key, Compare, Allocator>::rb_tree(const key_compare& comp, const allocator_type& alloc)
-        : root(nullptr), allocator(alloc), compare(comp), min_node(nullptr), max_node(nullptr) {
-        init_nil();
+        : allocator(alloc), compare(comp), min_node(nullptr), max_node(nullptr) {
+        this->header.color = RED;
+        this->header.parent = nullptr;
+        this->header.left = &this->header;
+        this->header.right = &this->header;
     }
     
     template<
@@ -25,28 +31,31 @@ namespace mystd {
         class Compare,
         class Allocator
     > rb_tree<Key, Compare, Allocator>::rb_tree(const allocator_type& alloc)
-        : root(nullptr), allocator(alloc), compare(Compare()), min_node(nullptr), max_node(nullptr) {
-        init_nil();
+        : allocator(alloc), compare(Compare()), min_node(nullptr), max_node(nullptr) {
+        this->header.color = RED;
+        this->header.parent = nullptr;
+        this->header.left = &this->header;
+        this->header.right = &this->header;
     }
 
     template<
         class Key,
         class Compare,
         class Allocator
-    > void rb_tree<Key, Compare, Allocator>::init_nil() {
-        this->nil.color = BLACK;
-        this->nil.left = this->nil.right = &(this->nil);
-        this->nil.parent = nullptr;
+    > void rb_tree<Key, Compare, Allocator>::init_nil(base_node_type& nil) {
+        nil.color = BLACK;
+        nil.left = nil.right = &(nil);
+        nil.parent = nullptr;
     }
 
     template<
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::node_type* 
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type* 
         rb_tree<Key, Compare, Allocator>::make_node(const key_type& value, 
-                bool isLeft, bool color, node_type *parent) {
-        node_type* node = nullptr;
+                bool isLeft, bool color, base_node_type *parent) {
+        base_node_type* node = nullptr;
         try {
             node = std::allocator_traits<Allocator>::allocate(this->allocator, 1);
             std::allocator_traits<Allocator>::construct(this->allocator, node, value, color, parent);
@@ -72,10 +81,10 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::node_type* 
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type* 
         rb_tree<Key, Compare, Allocator>::make_node(key_type&& value, 
-                bool isLeft, bool color, node_type *parent) {
-        node_type* node = nullptr;
+                bool isLeft, bool color, base_node_type *parent) {
+        base_node_type* node = nullptr;
         try {
             node = std::allocator_traits<Allocator>::allocate(this->allocator, 1);
             std::allocator_traits<Allocator>::construct(this->allocator, node, std::move(value), color, parent);
@@ -101,7 +110,7 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > bool rb_tree<Key, Compare, Allocator>::is_black(node_type *node) {
+    > bool rb_tree<Key, Compare, Allocator>::is_black(base_node_type *node) {
         return (node == nullptr || node->color == BLACK);
     }
 
@@ -109,7 +118,7 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > void rb_tree<Key, Compare, Allocator>::flip_color(node_type *node) {
+    > void rb_tree<Key, Compare, Allocator>::flip_color(base_node_type *node) {
         while (1) {
             if (node->left) {
                 node->left->color = BLACK;
@@ -131,9 +140,9 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > void rb_tree<Key, Compare, Allocator>::rotate_left(node_type *parent) {
-        node_type *right_child = parent->right;
-        node_type *left_grandchild = right_child->left;
+    > void rb_tree<Key, Compare, Allocator>::rotate_left(base_node_type *parent) {
+        base_node_type *right_child = parent->right;
+        base_node_type *left_grandchild = right_child->left;
 
         right_child->parent = parent->parent;
         parent->parent = right_child;
@@ -146,10 +155,10 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > void rb_tree<Key, Compare, Allocator>::rotate_right(node_type *parent) {
-        node_type *left_child = parent->left;
+    > void rb_tree<Key, Compare, Allocator>::rotate_right(base_node_type *parent) {
+        base_node_type *left_child = parent->left;
 
-        node_type *right_grandchild = left_child->right;
+        base_node_type *right_grandchild = left_child->right;
         left_child->parent = parent->parent;
         parent->parent = left_child;
 
@@ -161,14 +170,14 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > void rb_tree<Key, Compare, Allocator>::fix_up_insert(node_type *node, bool is_left) {
-        node_type *cur_parent = node->parent;
+    > void rb_tree<Key, Compare, Allocator>::fix_up_insert(base_node_type *node, bool is_left) {
+        base_node_type *cur_parent = node->parent;
 
         if (cur_parent->color == BLACK) {
             return;
         }
 
-        node_type* cur_uncle = cur_parent->get_sibling();
+        base_node_type* cur_uncle = cur_parent->get_sibling();
 
         if (cur_uncle->color == RED) {
             rotate_color_node(cur_parent);
@@ -192,16 +201,17 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > std::pair<node_type*, bool> rb_tree<Key, Compare, Allocator>::insert(const key_type& value) {
-        if (!root) {
-            root = this->make_node(value, false, BLACK);
-            this->min_node = this->max_node = root;
+    > std::pair<base_node_type*, bool> rb_tree<Key, Compare, Allocator>::insert(const key_type& value) {
+        if (!this->header.parent) {
+            this->header.parent = this->make_node(value, false, BLACK);
+            this->header.left = this->header.right = this->header.parent;
+            this->header.parent->parent = &this->header;
  
-            return std::pair<node_type*, bool> (root, true);
+            return std::pair<base_node_type*, bool> (this->header.parent, true);
         }
 
-        node_type *traverse = root;
-        node_type *cur_parent;
+        base_node_type *traverse = this->header.parent;
+        base_node_type *cur_parent;
         bool is_left = false;
 
         while (traverse) {
@@ -214,7 +224,7 @@ namespace mystd {
                 is_left = false;
                 traverse = trarverse->right;
             } else {
-                return std::pair<node_type*, bool>(traverse, false);
+                return std::pair<base_node_type*, bool>(traverse, false);
             }
         }
 
@@ -223,33 +233,35 @@ namespace mystd {
         fix_up_insert(traverse, is_left);
 
         // Update min max of the tree
-        if (traverse->parent == this->min_node && is_left) {
-            this->min_node = traverse;
+        if (traverse->parent == this->header.left && is_left) {
+            this->header.left = traverse;
         }
 
-        if (traverse->parent == this->max_node && !is_left) {
-            this->max_node = traverse;
+        if (traverse->parent == this->header.right && !is_left) {
+            this->header.right = traverse;
         }
 
-        return std::pair<node_type*, bool>(traverse, false);
+        return std::pair<base_node_type*, bool>(traverse, false);
     }
 
     template<
         class Key,
         class Compare,
         class Allocator
-    > std::pair<node_type*, bool> rb_tree<Key, Compare, Allocator>::insert(key_type&& value) {
+    > std::pair<base_node_type*, bool> rb_tree<Key, Compare, Allocator>::insert(key_type&& value) {
         static_assert(std::is_move_constructible_v<key_type>,
             "Value should be move constructible");
    
-        if (!root) {
-            root = this->make_node(std::move(value), false, BLACK);
+        if (!this->header.parent) {
+            this->header.parent = this->make_node(value, false, BLACK);
+            this->header.left = this->header.right = this->header.parent;
+            this->header.parent->parent = &this->header;
  
-            return std::pair<node_type*, bool> (root, true);
+            return std::pair<base_node_type*, bool> (this->header.parent, true);
         }
 
-        node_type *traverse = root;
-        node_type *cur_parent;
+        base_node_type *traverse = this->header.parent;
+        base_node_type *cur_parent;
         bool is_left = false;
 
         while (traverse) {
@@ -262,7 +274,7 @@ namespace mystd {
                 is_left = false;
                 traverse = trarverse->right;
             } else {
-                return std::pair<node_type*, bool>(traverse, false);
+                return std::pair<base_node_type*, bool>(traverse, false);
             }
         }
 
@@ -271,22 +283,22 @@ namespace mystd {
         fix_up_insert(node, is_left);
 
         // Update min max of the tree
-        if (traverse->parent == this->min_node && is_left) {
-            this->min_node = traverse;
+        if (traverse->parent == this->header.left && is_left) {
+            this->header.left = traverse;
         }
 
-        if (traverse->parent == this->max_node && !is_left) {
-            this->max_node = traverse;
+        if (traverse->parent == this->header.right && !is_left) {
+            this->header.right = traverse;
         }
 
-        return std::pair<node_type*, bool>(traverse, false);
+        return std::pair<base_node_type*, bool>(traverse, false);
     }
 
     template<
         class Key,
         class Compare,
         class Allocator
-    > void rb_tree<Key, Compare, Allocator>::free_node(node_type *node) {
+    > void rb_tree<Key, Compare, Allocator>::free_node(base_node_type *node) {
         std::allocator_traits<Allocator>::destroy(this->allocator, node);
         std::allocator_traits<Allocator>::deallocate(this->allocator, node, 1);
     }
@@ -295,8 +307,8 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::node_type* rb_tree<Key, Compare, Allocator>::find(const key_type& value) const {
-        node_type *traverse = root;
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::find(const key_type& value) const {
+        base_node_type *traverse = this->header.parent;
 
         while (traverse) {
             if (this->compare(value, traverse->value)) {
@@ -315,8 +327,8 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::node_type* rb_tree<Key, Compare, Allocator>::find_min(node_type *node) const {
-        node_type *traverse = node;
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::find_min(base_node_type *node) const {
+        base_node_type *traverse = node;
 
         while (traverse) {
             traverse = traverse->left;
@@ -329,8 +341,8 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::node_type* rb_tree<Key, Compare, Allocator>::find_max(node_type *node) const {
-        node_type *traverse = node;
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::find_max(base_node_type *node) const {
+        base_node_type *traverse = node;
 
         while (traverse) {
             traverse = traverse->right;
@@ -343,24 +355,24 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::node_type* rb_tree<Key, Compare, Allocator>::find_min() const {
-        return this->min_node;
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::find_min() const {
+        return this->header.left;
     }
 
     template<
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::node_type* rb_tree<Key, Compare, Allocator>::find_max() const {
-        return this->max_node;
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::find_max() const {
+        return this->header.right;
     }
 
     template<
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::node_type* rb_tree<Key, Compare, Allocator>::lower_bound(const key_type& value) const {
-        node_type *traverse = root;
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::lower_bound(const key_type& value) const {
+        base_node_type *traverse = this->header.parent;
 
         while (traverse) {
             if (this->compare(traverse->value, value)) {
@@ -381,8 +393,8 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::node_type* rb_tree<Key, Compare, Allocator>::upper_bound(const key_type& value) const {
-        node_type *traverse = root;
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::upper_bound(const key_type& value) const {
+        base_node_type *traverse = this->header.parent;
 
         while (traverse) {
             if (!this->compare(value, traverse->value)) {
@@ -403,9 +415,9 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > void rb_tree<Key, Compare, Allocator>::transplant(node_type *u, node_type *v) {
-        if (this->root == u) {
-            this->root = v;
+    > void rb_tree<Key, Compare, Allocator>::transplant(base_node_type *u, base_node_type *v) {
+        if (this->header.parent == u) {
+            this->header.parent = v;
         } else if (u->is_left()) {
             u->parent->left = v;
         } else {
@@ -419,10 +431,10 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > void rb_tree<Key, Compare, Allocator>::fix_up_delete(node_type *node) {
-        while (node != this->root && node->color == BLACK) {
+    > void rb_tree<Key, Compare, Allocator>::fix_up_delete(base_node_type *node) {
+        while (node != this->header.parent && node->color == BLACK) {
             if (node.is_left()) {
-                node_type *sibling = node->parent->right;
+                base_node_type *sibling = node->parent->right;
 
                 if (!is_black(sibling)) {
                     /* In this case, node is black and sibling of node is red so parent
@@ -452,10 +464,10 @@ namespace mystd {
                     sibling->right->color = BLACK;
                     rotate_left(node->parent);
 
-                    node = this->root;
+                    node = this->header.parent;
                 }
             } else {
-                node_type *sibling = node->parent->left;
+                base_node_type *sibling = node->parent->left;
 
                 if (!is_black(sibling)) {
                     node->parent->color = RED;
@@ -482,7 +494,7 @@ namespace mystd {
                     sibling->left->color = BLACK;
                     rotate_right(node->parent);
 
-                    node = this->root;
+                    node = this->header.parent;
                 }
             }
         }
@@ -495,35 +507,37 @@ namespace mystd {
         class Compare,
         class Allocator
     > typename rb_tree<Key, Compare, Allocator>::size_type rb_tree<Key, Compare, Allocator>::erase(const key_type& value) {
-        node_type *need_erase = this->find(value);
+        base_node_type *need_erase = this->find(value);
         if (!need_erase) {
             return 0;
         }
 
         // Update min max of the tree
-        if (need_erase == this->min_node) {
+        if (need_erase == this->header.left) {
             if (need_erase->right) {
-                this->min_node = need_erase->right;
+                this->header.left = need_erase->right;
             } else {
-                this->min_node = need_erase->parent;
+                this->header.left = need_erase->parent;
             }
         }
 
-        if (need_erase == this->max_node) {
+        if (need_erase == this->header.right) {
             if (need_erase->left) {
-                this->max_node = need_erase->left;
+                this->header.right = need_erase->left;
             } else {
-                this->max_node = need_erase->parent;
+                this->header.right = need_erase->parent;
             }
         }
 
-        node_type *replaced_node = need_erase;
-        node_type *cur_replaced_pos;
+        base_node_type *replaced_node = need_erase;
+        base_node_type *cur_replaced_pos;
+        base_node_type nil;
+        init_nil(nil);
 
         bool org_color = need_erase->color;
 
         if (need_erase->left == nullptr && need_erase->right == nullptr) {
-            cur_replaced_pos = &(this->nil);
+            cur_replaced_pos = &(nil);
             cur_replaced_pos->parent = need_erase->parent;
         } else if (need_erase->left == nullptr) {
             replaced_node = need_erase->right;
@@ -539,7 +553,7 @@ namespace mystd {
             org_color = replaced_node->color;
 
             if (replaced_node->right == nullptr) {
-                replaced_node->right = &(this->nil);
+                replaced_node->right = &(nil);
             }
             cur_replaced_pos = replaced_node->right;
 

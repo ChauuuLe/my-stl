@@ -16,12 +16,15 @@ namespace mystd {
         using allocator_type = Allocator;
         using key_compare = Compare;
         using node_type = typename rb_tree_node<Key>;
+        using base_node_type = rb_tree_node_base;
         using size_type = size_t;
 
-        node_type *root;
-        node_type *max_node;
-        node_type *min_node;
-        node_type nil;
+        /*
+        Root is header parent
+        Right is max node
+        Left is min node
+        */
+        base_node_type header;
 
         allocator_type allocator;
         key_compare compare;
@@ -30,32 +33,32 @@ namespace mystd {
         explicit rb_tree(const key_compare& comp, const allocator_type& alloc = Allocator());
         explicit rb_tree(const allocator_type& alloc);
     
-        std::pair<node_type*, bool> insert(const key_type& value);
-        std::pair<node_type*, bool> insert(key_type&& value);
+        std::pair<base_node_type*, bool> insert(const key_type& value);
+        std::pair<base_node_type*, bool> insert(key_type&& value);
         size_type erase(const key_type& value);
-        node_type* find(const key_type& value) const;
+        base_node_type* find(const key_type& value) const;
 
-        node_type* find_max(node_type *node) const;
-        node_type* find_min(node_type *node) const;
-        node_type* find_max() const;
-        node_type* find_min() const;
-        node_type* lower_bound(const key_type& value) const;
-        node_type* upper_bound(const key_type& value) const;
+        base_node_type* find_max(base_node_type *node) const;
+        base_node_type* find_min(base_node_type *node) const;
+        base_node_type* find_max() const;
+        base_node_type* find_min() const;
+        base_node_type* lower_bound(const key_type& value) const;
+        base_node_type* upper_bound(const key_type& value) const;
 
-        node_type* make_node(const key_type& value, bool is_left, bool color, node_type *parent = nullptr);
-        node_type* make_node(key_type&& value, bool is_left, bool color, node_type *parent = nullptr);
+        base_node_type* make_node(const key_type& value, bool is_left, bool color, base_node_type *parent = nullptr);
+        base_node_type* make_node(key_type&& value, bool is_left, bool color, base_node_type *parent = nullptr);
         void init_nil();
 
-        bool is_black(node_type *node);
-        void flip_color(node_type *node);
-        void rotate_left(node_type *parent);
-        void rotate_right(node_type *parent);
-        void transplant(node_type *u, node_type* v);
+        bool is_black(base_node_type *node);
+        void flip_color(base_node_type *node);
+        void rotate_left(base_node_type *parent);
+        void rotate_right(base_node_type *parent);
+        void transplant(base_node_type *u, base_node_type* v);
 
-        void fix_up_insert(node_type *node, bool is_left);
-        void fix_up_delete(node_type *node);
+        void fix_up_insert(base_node_type *node, bool is_left);
+        void fix_up_delete(base_node_type *node);
 
-        void free_node(node_type *node);
+        void free_node(base_node_type *node);
     };
 }
 
