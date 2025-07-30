@@ -33,8 +33,8 @@ namespace mystd {
         key_compare compare;
 
         rb_tree();
-        explicit rb_tree(const key_compare& comp, const allocator_type& alloc = Allocator());
-        explicit rb_tree(const allocator_type& alloc);
+        explicit rb_tree(const key_compare& comp, const node_allocator& alloc = node_allocator());
+        explicit rb_tree(const node_allocator& alloc);
         
         template<class... Args>
         std::pair<base_node_type*, bool> insert(Args&&... args);
