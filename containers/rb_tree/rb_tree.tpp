@@ -7,7 +7,7 @@ namespace mystd {
         class Compare,
         class Allocator
     > rb_tree<Key, Compare, Allocator>::rb_tree()
-        : allocator(Allocator()), compare(Compare()), min_node(nullptr), max_node(nullptr) {
+        : node_allocator(node_allocator()), compare(Compare()), min_node(nullptr), max_node(nullptr) {
         this->header.color = RED;
         this->header.parent = nullptr;
         this->header.left = &this->header;
@@ -18,8 +18,8 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > rb_tree<Key, Compare, Allocator>::rb_tree(const key_compare& comp, const allocator_type& alloc)
-        : allocator(alloc), compare(comp), min_node(nullptr), max_node(nullptr) {
+    > rb_tree<Key, Compare, Allocator>::rb_tree(const key_compare& comp, const node_allocator& alloc)
+        : node_allocator(alloc), compare(comp), min_node(nullptr), max_node(nullptr) {
         this->header.color = RED;
         this->header.parent = nullptr;
         this->header.left = &this->header;
@@ -30,8 +30,8 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > rb_tree<Key, Compare, Allocator>::rb_tree(const allocator_type& alloc)
-        : allocator(alloc), compare(Compare()), min_node(nullptr), max_node(nullptr) {
+    > rb_tree<Key, Compare, Allocator>::rb_tree(const node_allocator& alloc)
+        : node_allocator(alloc), compare(Compare()), min_node(nullptr), max_node(nullptr) {
         this->header.color = RED;
         this->header.parent = nullptr;
         this->header.left = &this->header;
