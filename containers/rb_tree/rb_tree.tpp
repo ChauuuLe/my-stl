@@ -52,48 +52,23 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::base_node_type* 
-        rb_tree<Key, Compare, Allocator>::make_node(const key_type& value, 
-                bool isLeft, bool color, base_node_type *parent) {
+    >  template<class... Args>
+    typename rb_tree<Key, Compare, Allocator>::base_node_type* 
+        rb_tree<Key, Compare, Allocator>::make_node(bool isLeft, bool color,
+                base_node_type *parent, Args&&... value_args) {
         base_node_type* node = nullptr;
         try {
-            node = std::allocator_traits<Allocator>::allocate(this->allocator, 1);
-            std::allocator_traits<Allocator>::construct(this->allocator, node, value, color, parent);
+            node = std::allocator_traits<Allocator>::allocate(*this, 1);
+            std::allocator_traits<Allocator>::construct(*this, std::forward<Args>(value_args));
         } catch(...) {
             if (node) {
-                std::allocator_traits<Allocator>::deallocate(this->Allocator, node, 1);
+                std::allocator_traits<Allocator>::deallocate(*this, node, 1);
             }
             throw;
         }
 
-        if (parent) {
-            if (is_left) {
-                parent->left = node;
-            } else {
-                parent->right = node;
-            }    
-        }
-
-        return node;
-    }
-
-    template<
-        class Key,
-        class Compare,
-        class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::base_node_type* 
-        rb_tree<Key, Compare, Allocator>::make_node(key_type&& value, 
-                bool isLeft, bool color, base_node_type *parent) {
-        base_node_type* node = nullptr;
-        try {
-            node = std::allocator_traits<Allocator>::allocate(this->allocator, 1);
-            std::allocator_traits<Allocator>::construct(this->allocator, node, std::move(value), color, parent);
-        } catch(...) {
-            if (node) {
-                std::allocator_traits<Allocator>::deallocate(this->Allocator, node, 1);
-            }
-            throw;
-        }
+        node->parent = parent;
+        node->color = color;
 
         if (parent) {
             if (is_left) {
@@ -201,9 +176,10 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > std::pair<base_node_type*, bool> rb_tree<Key, Compare, Allocator>::insert(const key_type& value) {
+    > template<class... Args> 
+    std::pair<base_node_type*, bool> rb_tree<Key, Compare, Allocator>::insert(Args&&... args) {
         if (!this->header.parent) {
-            this->header.parent = this->make_node(value, false, BLACK);
+            this->header.parent = this->make_node(false, BLACK, nullptr, std::forward<Args>(args)...);
             this->header.left = this->header.right = this->header.parent;
             this->header.parent->parent = &this->header;
  
@@ -211,6 +187,7 @@ namespace mystd {
         }
 
         base_node_type *traverse = this->header.parent;
+        Key value = Key(std::forward<Args>(args)...);
         base_node_type *cur_parent;
         bool is_left = false;
 
@@ -228,7 +205,11 @@ namespace mystd {
             }
         }
 
-        traverse = this->make_node(value, is_left, RED, cur_parent);
+        if noexcept(std::is_move_constructible_v<Key>) {
+            traverse = this->make_node(is_left, RED, cur_parent, std::move(value));
+        } else {
+            traverse = this->make_node(is_left, RED, cur_parent, value);
+        }
         
         fix_up_insert(traverse, is_left);
 
@@ -248,59 +229,9 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > std::pair<base_node_type*, bool> rb_tree<Key, Compare, Allocator>::insert(key_type&& value) {
-        static_assert(std::is_move_constructible_v<key_type>,
-            "Value should be move constructible");
-   
-        if (!this->header.parent) {
-            this->header.parent = this->make_node(value, false, BLACK);
-            this->header.left = this->header.right = this->header.parent;
-            this->header.parent->parent = &this->header;
- 
-            return std::pair<base_node_type*, bool> (this->header.parent, true);
-        }
-
-        base_node_type *traverse = this->header.parent;
-        base_node_type *cur_parent;
-        bool is_left = false;
-
-        while (traverse) {
-            cur_parent = traverse;
-
-            if (compare(value, traverse->value)) {
-                is_left = true;
-                traverse = traverse->left;
-            } else (compare(traverse->value, value)){
-                is_left = false;
-                traverse = trarverse->right;
-            } else {
-                return std::pair<base_node_type*, bool>(traverse, false);
-            }
-        }
-
-        traverse = this->make_node(std::move(value), is_left, RED, cur_parent);
-        
-        fix_up_insert(node, is_left);
-
-        // Update min max of the tree
-        if (traverse->parent == this->header.left && is_left) {
-            this->header.left = traverse;
-        }
-
-        if (traverse->parent == this->header.right && !is_left) {
-            this->header.right = traverse;
-        }
-
-        return std::pair<base_node_type*, bool>(traverse, false);
-    }
-
-    template<
-        class Key,
-        class Compare,
-        class Allocator
     > void rb_tree<Key, Compare, Allocator>::free_node(base_node_type *node) {
-        std::allocator_traits<Allocator>::destroy(this->allocator, node);
-        std::allocator_traits<Allocator>::deallocate(this->allocator, node, 1);
+        std::allocator_traits<Allocator>::destroy(*this, node);
+        std::allocator_traits<Allocator>::deallocate(*this, node, 1);
     }
 
     template<

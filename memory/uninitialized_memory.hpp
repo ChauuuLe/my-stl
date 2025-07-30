@@ -1,5 +1,5 @@
 #pragma once
-#include<memory>
+#include <memory>
 #include <iterator>
 #include "../type_traits/is_integral.hpp"
 #include "../type_traits/enable_if.hpp"

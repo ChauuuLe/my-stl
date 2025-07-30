@@ -233,7 +233,7 @@ namespace mystd {
     }
 
     template<class T, class Allocator>
-    template<class InputIt, class>
+    template<class InputIt, class = mystd::enable_if_t<!is_integral<InputIt>::value>>
     vector<T, Allocator>::vector(InputIt first, InputIt last, const Allocator& alloc)
         : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
         

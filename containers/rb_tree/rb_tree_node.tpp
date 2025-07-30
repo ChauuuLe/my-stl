@@ -3,16 +3,13 @@
 namespace mystd {
     /*Nodes for tree*/
     template<class Key>
-    rb_tree_node<Key>::rb_tree_node() : color(BLACK), value() {}
+    rb_tree_node<Key>::rb_tree_node() : value() {}
 
     template<class Key>
-    rb_tree_node<Key>::rb_tree_node(const Key& value, bool color, rb_tree_node_base *parent)
-        : parent(parent), color(color), value(value) {}
-
-    template<class Key>
-    rb_tree_node<Key>::rb_tree_node(Key&& value, bool color, rb_tree_node_base *parent) 
-        noexcept(std::is_nothrow_move_constructible_v<Key>)
-        : parent(parent), color(color), value(std::move(value)) {}
+    template<class... Args>
+    rb_tree_node<Key>::rb_tree_node(Args&&... value_args)
+            noexcept(std::is_nothrow_constructible_v<Key, Args&&...>)
+        : value(std::forward<Args>(value_args)...) {}
 
     template<class Key>
     rb_tree_node_base* rb_tree_node<Key>::get_sibling() const {

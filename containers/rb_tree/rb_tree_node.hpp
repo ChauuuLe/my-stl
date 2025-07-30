@@ -12,7 +12,7 @@ namespace mystd {
     };
 
     struct rb_tree_node_base {
-        bool color;
+        bool color = BLACK;
         rb_tree_node_base *left = nullptr;
         rb_tree_node_base *right = nullptr;
         rb_tree_node_base *parent = nullptr;
@@ -24,9 +24,9 @@ namespace mystd {
 
         rb_tree_node();
 
-        rb_tree_node(const Key& value, bool color = RED, rb_tree_node_base *parent);
-        rb_tree_node(Key&& value, bool color = RED, rb_tree_node_base *parent)
-            noexcept(std::is_nothrow_move_constructible_v<Key>);
+        template<class... Args>
+        rb_tree_node(Args&&... value_args)
+            noexcept(std::is_nothrow_constructible_v<Key, Args&&...>);
 
         rb_tree_node_base* get_sibling() const;
         void change_color();
