@@ -31,6 +31,9 @@ namespace mystd {
         rb_tree_node_base* get_sibling() const;
         void change_color();
         bool is_left() const;
+
+        rb_tree_node_base* next() const;
+        rb_tree_node_base* prev() const;
     };
 }
 

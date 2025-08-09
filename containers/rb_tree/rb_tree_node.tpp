@@ -29,4 +29,62 @@ namespace mystd {
     bool rb_tree_node<Key>::is_left() const {
         return (this->parent && this->parent->left == this);
     }
+
+    template<class Key>
+    rb_tree_node_base* rb_tree_node<Key>::next() const {
+        rb_tree_node_base* cur = this;
+        rb_tree_node_base* res;
+        
+        if (cur->right) {
+            res = cur->right;
+            while (res) {
+                res = res->left;
+            }
+        } else {
+            res = cur;
+            cur = cur->parent;
+
+            while (cur == res->right) {
+                res = cur;
+                cur = cur->parent;
+            }
+
+            // This case not happen when res is header and the max is root
+            if (res->right != cur) {
+                res = cur;
+            }
+        }
+
+        return res;
+    }
+
+    template<class Key>
+    rb_tree_node_base* rb_tree_node<Key>::prev() const {
+        rb_tree_node_base* cur = this;
+        rb_tree_node_base* res;
+
+        if (cur->color == RED && cur->parent->parent == cur) {
+            return cur->right;
+        }
+
+        if (cur->left) {
+            res = cur->left;
+            
+            while (res) {
+                res = res->right;
+            }
+        } else {
+            res = cur;
+            cur = cur->parent;
+
+            while (cur->left == res) {
+                res = cur;
+                cur = cur->parent;
+            }
+
+            res = cur;
+        }
+
+        return res;
+    }
 };
