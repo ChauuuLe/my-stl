@@ -182,6 +182,8 @@ namespace mystd {
             this->header.parent = this->make_node(false, BLACK, nullptr, std::forward<Args>(args)...);
             this->header.left = this->header.right = this->header.parent;
             this->header.parent->parent = &this->header;
+
+            this->node_count++;
  
             return std::pair<base_node_type*, bool> (this->header.parent, true);
         }
@@ -222,7 +224,8 @@ namespace mystd {
             this->header.right = traverse;
         }
 
-        return std::pair<base_node_type*, bool>(traverse, false);
+        this->node_count++;
+        return std::pair<base_node_type*, bool>(traverse, true);
     }
 
     template<
@@ -503,6 +506,8 @@ namespace mystd {
         }
 
         this->free_node(need_erase);
+        this->node_count--;
+
         return 1;
     }
 };

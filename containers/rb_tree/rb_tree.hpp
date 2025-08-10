@@ -31,6 +31,7 @@ namespace mystd {
         */
         base_node_type header;
         key_compare compare;
+        size_type node_count;
 
         rb_tree();
         explicit rb_tree(const key_compare& comp, const node_allocator& alloc = node_allocator());
