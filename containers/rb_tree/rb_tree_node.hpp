@@ -25,8 +25,7 @@ namespace mystd {
         rb_tree_node();
 
         template<class... Args>
-        rb_tree_node(Args&&... value_args)
-            noexcept(std::is_nothrow_constructible_v<Key, Args&&...>);
+        rb_tree_node(Args&&... value_args);
 
         rb_tree_node_base* get_sibling() const;
         void change_color();

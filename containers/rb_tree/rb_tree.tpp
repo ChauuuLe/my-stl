@@ -7,11 +7,8 @@ namespace mystd {
         class Compare,
         class Allocator
     > rb_tree<Key, Compare, Allocator>::rb_tree()
-        : node_allocator(node_allocator()), compare(Compare()), min_node(nullptr), max_node(nullptr) {
-        this->header.color = RED;
-        this->header.parent = nullptr;
-        this->header.left = &this->header;
-        this->header.right = &this->header;
+        : node_allocator(node_allocator()), compare(Compare()), node_count(0) {
+        init_header();
     }
 
     template<
@@ -19,11 +16,8 @@ namespace mystd {
         class Compare,
         class Allocator
     > rb_tree<Key, Compare, Allocator>::rb_tree(const key_compare& comp, const node_allocator& alloc)
-        : node_allocator(alloc), compare(comp), min_node(nullptr), max_node(nullptr) {
-        this->header.color = RED;
-        this->header.parent = nullptr;
-        this->header.left = &this->header;
-        this->header.right = &this->header;
+        : node_allocator(alloc), compare(comp), min_node(nullptr), node_count(0) {
+        init_header();
     }
     
     template<
@@ -31,11 +25,213 @@ namespace mystd {
         class Compare,
         class Allocator
     > rb_tree<Key, Compare, Allocator>::rb_tree(const node_allocator& alloc)
-        : node_allocator(alloc), compare(Compare()), min_node(nullptr), max_node(nullptr) {
-        this->header.color = RED;
-        this->header.parent = nullptr;
-        this->header.left = &this->header;
-        this->header.right = &this->header;
+        : node_allocator(alloc), compare(Compare()), node_count(0) {
+        init_header();
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > rb_tree<Key, Compare, Allocator>::rb_tree(const rb_tree& rhs)
+        : node_allocator(std::allocator_traits<node_allocator>::select_on_container_copy_construction(rhs.get_node_allocator())),
+          compare(rhs.compare), node_count(rhs.node_count) {
+        init_header();
+
+        try {
+            copy_tree(&(this->header.parent), rhs.header.parent);
+
+            if (this->header.parent) {
+                this->header.right = this->find_max(this->header.parent);
+                this->header.left = this->find_min(this->header.parent);    
+            }
+        } catch (...) {
+            delete_subtree(this->header.parent);
+            throw;
+        }
+    }
+    
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > rb_tree<Key, Compare, Allocator>::rb_tree(rb_tree&& rhs)
+        : node_allocator(std::move(rhs.get_allocator())),
+            compare(std::move(rhs.compare)), node_count(rhs.node_count) {
+        init_header();
+        if (rhs.header.left != rhs.header) {
+            this->header.left = rhs.header.left;
+        }
+        if (rhs.header.right != rhs.header) {
+            this->header.right = rhs.header.right;
+        }
+        this->header.parent = rhs.header.parent;
+
+        rhs.init_header();
+        rhs.node_count = 0;
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > rb_tree& rb_tree<Key, Compare, Allocator>::operator=(const rb_tree& rhs) {
+        if constexpr(std::allocator_traits<node_allocator>::propagate_on_container_copy_assignment::value) {
+            node_allocator old_alloc = *this;
+            node_allocator& this_allocator = this->get_node_allocator();
+
+            init_header();
+            this_allocator = rhs.get_node_allocator();
+
+            try {
+                copy_tree(&(this->header.parent), rhs.header.parent);
+            } catch(...) {
+                delete_subtree(this->header.parent);
+                this_allocator = old_alloc;
+                this->header.parent = old_root;
+                throw;
+            }
+
+            this_allocator = old_alloc;
+            delete_subtree(old_root);
+        } else {
+            base_node_type* old_root = this->header.parent;
+            init_header();
+
+            try {
+                copy_tree(&(this->header.parent), rhs.header.parent);
+            } catch(...) {
+                delete_subtree(this->header.parent);
+                this->header.parent = old_root;
+                throw;
+            }
+
+            delete_subtree(old_root);
+        }
+
+        this->compare = rhs.compare;
+        this->node_count = rhs.node_count;
+        if (this->header.parent) {
+            this->header.right = this->find_max(this->header.parent);
+            this->header.left = this->find_min(this->header.parent);    
+        }
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > rb_tree& rb_tree<Key, Compare, Allocator>::operator=(rb_tree&& rhs) {
+        if constexpr(std::allocator_traits<node_allocator>::propagate_on_container_move_assignment::value) {
+            node_allocator& this_allocator = this->get_node_allocator();
+            this_allocator = rhs.get_node_allocator();
+        }
+
+        this->node_count = rhs.node_count;
+        this->compare = std::move(rhs.compare);
+        this->header.parent = rhs.header.parent;
+        
+        init_header();
+        if (rhs.header.left != rhs.header) {
+            this->header.left = rhs.header.left;
+        }
+        if (rhs.header.right != rhs.header) {
+            this->header.right = rhs.header.right;
+        }
+        
+        rhs.init_header();
+        rhs.node_count = 0;
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > typename rb_tree<Key, Compare, Allocator>::allocator_type
+            rb_tree<Key, Compare, Allocator>::get_allocator() const {
+        return allocator_type(this->get_node_allocator());
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > typename rb_tree<Key, Compare, Allocator>::node_allocator&
+            rb_tree<Key, Compare, Allocator>::get_node_allocator() {
+        return *static_cast<node_allocator*>(this);
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > const typename rb_tree<Key, Compare, Allocator>::node_allocator&
+            rb_tree<Key, Compare, Allocator>::get_node_allocator() const {
+        return *static_cast<const node_allocator*>(this);
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > void copy_tree(base_node_type** this_node, base_node_type* rhs_node) {
+        base_node_type* par = &(this->header);
+
+        while ((*this_node) != &(this->header)) {
+            if (!rhs_node) {
+                this_node = &par;
+                rhs_node = rhs_node->parent;
+                continue;
+            }
+
+            if (!(*this_node)) {
+                *this_node = this->make_node(rhs_node->is_left(), rhs_node->color, par, noep(rhs_node)->value);
+            }
+
+            if (rhs_node->left && (*this_node)->left == nullptr) {
+                par = *this_node;
+                rhs_node = rhs_node->left;
+                this_node = &(*this_node)->left;
+                continue;
+            }
+
+            if (rhs_node->right && (*this_node)->right == nullptr) {
+                par = *this_node;
+                rhs_node = rhs_node->right;
+                this_node = &(*this_node)->right;
+                continue;
+            }
+
+            this_node = &par;
+            rhs_node = rhs_node->parent;
+        }
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > void delete_subtree(base_node_type* node) {
+        if (!node) {
+            return;
+        }
+
+        base_node_type *par = &(this->header);
+
+        while (node != &(this->header)) {
+            if (node->left) {
+                node = node->left;
+                continue;
+            }
+
+            if (node->right) {
+                node = node->right;
+                continue;
+            }
+
+            this->free_node(node);
+            node = par;
+        }
     }
 
     template<
@@ -52,17 +248,28 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
+    > void rb_tree<Key, Compare, Allocator>::init_header() {
+        this->header.color = RED;
+        this->header.parent = nullptr;
+        this->header.left = &this->header;
+        this->header.right = &this->header;
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
     >  template<class... Args>
     typename rb_tree<Key, Compare, Allocator>::base_node_type* 
-        rb_tree<Key, Compare, Allocator>::make_node(bool isLeft, bool color,
+        rb_tree<Key, Compare, Allocator>::make_node(bool is_left, bool color,
                 base_node_type *parent, Args&&... value_args) {
         base_node_type* node = nullptr;
         try {
-            node = std::allocator_traits<Allocator>::allocate(*this, 1);
-            std::allocator_traits<Allocator>::construct(*this, std::forward<Args>(value_args));
+            node = std::allocator_traits<node_allocator>::allocate(*this, 1);
+            std::allocator_traits<node_allocator>::construct(*this, node, std::forward<Args>(value_args));
         } catch(...) {
             if (node) {
-                std::allocator_traits<Allocator>::deallocate(*this, node, 1);
+                std::allocator_traits<node_allocator>::deallocate(*this, node, 1);
             }
             throw;
         }
@@ -80,7 +287,52 @@ namespace mystd {
 
         return node;
     }
-    
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > void rb_tree<Key, Compare, Allocator>::free_node(base_node_type *node) noexcept {
+        std::allocator_traits<node_allocator>::destroy(*this, node);
+        std::allocator_traits<node_allocator>::deallocate(*this, node, 1);
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    >  const typename rb_tree<Key, Compare, Allocator>::base_node_type*
+        rb_tree<Key, Compare, Allocator>::base(const node_type* node) const {
+        return static_cast<base_node_type*>(node);
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    >  typename rb_tree<Key, Compare, Allocator>::base_node_type*
+        rb_tree<Key, Compare, Allocator>::base(node_type* node) const {
+        return static_cast<base_node_type*>(node);
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    >  typename rb_tree<Key, Compare, Allocator>::node_type*
+        rb_tree<Key, Compare, Allocator>::noep(const base_node_type* node) const {
+        return static_cast<node_type*>(node);
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > const typename rb_tree<Key, Compare, Allocator>::node_type*
+        rb_tree<Key, Compare, Allocator>::noep(base_node_type* node) const {
+        return static_cast<node_type*>(node);
+    }
+
     template<
         class Key,
         class Compare,
@@ -196,10 +448,10 @@ namespace mystd {
         while (traverse) {
             cur_parent = traverse;
 
-            if (compare(value, traverse->value)) {
+            if (compare(value, noep(traverse)->value)) {
                 is_left = true;
                 traverse = traverse->left;
-            } else (compare(traverse->value, value)){
+            } else (compare(noep(traverse)->value, value)){
                 is_left = false;
                 traverse = trarverse->right;
             } else {
@@ -232,22 +484,13 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > void rb_tree<Key, Compare, Allocator>::free_node(base_node_type *node) {
-        std::allocator_traits<Allocator>::destroy(*this, node);
-        std::allocator_traits<Allocator>::deallocate(*this, node, 1);
-    }
-
-    template<
-        class Key,
-        class Compare,
-        class Allocator
     > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::find(const key_type& value) const {
         base_node_type *traverse = this->header.parent;
 
         while (traverse) {
-            if (this->compare(value, traverse->value)) {
+            if (this->compare(value, noep(traverse)->value)) {
                 traverse = traverse->left;
-            } else if (this->compare(traverse->value, value)) {
+            } else if (this->compare(noep(traverse)->value, value)) {
                 traverse = traverse->right;
             } else {
                 break;
@@ -309,15 +552,19 @@ namespace mystd {
         base_node_type *traverse = this->header.parent;
 
         while (traverse) {
-            if (this->compare(traverse->value, value)) {
+            if (this->compare(noep(traverse)->value, value)) {
                 traverse = traverse->right;
             } else {
-                if (!traverse->left || this->compare(traverse->left->value, value)) {
+                if (!traverse->left || this->compare(noep(traverse->left)->value, value)) {
                     break;
                 } else {
                     traverse = traverse->left;
                 }
             }
+        }
+
+        if (!traverse) {
+            return &(this->header);
         }
 
         return traverse;
@@ -331,15 +578,19 @@ namespace mystd {
         base_node_type *traverse = this->header.parent;
 
         while (traverse) {
-            if (!this->compare(value, traverse->value)) {
+            if (!this->compare(value, noep(traverse)->value)) {
                 traverse = traverse->right;
             } else {
-                if (!traverse->left || !this->compare(value, traverse->left->value)) {
+                if (!traverse->left || !this->compare(value, noep(traverse->left)->value)) {
                     break;
                 } else {
                     traverse = traverse->left;
                 }
             }
+        }
+
+        if (!traverse) {
+            return &(this->header);
         }
 
         return traverse;
