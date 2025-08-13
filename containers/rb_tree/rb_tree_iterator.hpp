@@ -7,18 +7,17 @@
 
 namespace mystd {
     template<class Key>
-    class rb_tree_iterator {
-    public:
+    struct rb_tree_iterator {
         using node_type = typename rb_tree_node<Key>;
         using base_node_type = rb_tree_node_base;
-    private:
-        base_node_type *ptr;
-    public:
+        
         using value_type = Key;
         using difference_type = std::ptrdiff_t;
         using pointer = Key*;
         using reference = Key&;
-        using iterator_category = std::random_access_iterator_tag;
+        using iterator_category = std::bidirectional_iterator_tag;
+
+        base_node_type *ptr;
 
         rb_tree_iterator(const rb_tree_iterator& it);
         rb_tree_iterator(base_node_type *ptr);

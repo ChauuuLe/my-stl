@@ -11,6 +11,11 @@ namespace mystd {
             : value(std::forward<Args>(value_args)...) {}
 
     template<class Key>
+    rb_tree_node<Key>::rb_tree_node(rb_tree_node&& node)
+            : value(std::move(node.value)), left(node.left), right(node.right),
+              parent(node.parent), color(node.color) {}
+
+    template<class Key>
     rb_tree_node_base* rb_tree_node<Key>::get_sibling() const {
         if (node->parent->left == this) {
             return node->parent->right;

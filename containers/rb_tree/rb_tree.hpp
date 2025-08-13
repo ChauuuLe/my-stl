@@ -40,24 +40,36 @@ namespace mystd {
         rb_tree(rb_tree&& rhs);
 
         rb_tree& operator=(const rb_tree& rhs);
-        rb_tree& operator=(rb_tree&& rhs);
+        rb_tree& operator=(rb_tree&& rhs) 
+            noexcept(std::allocator_traits<Allocator>::is_always_equal::value
+                && std::is_nothrow_move_assignable<Compare>::value);
+
+        void swap(rb_tree& other) noexcept(std::allocator_traits<Allocator>::is_always_equal::value
+                && std::is_nothrow_move_assignable<Compare>::value);
 
         allocator_type get_allocator() const;
         const node_allocator& get_node_allocator() const;
         node_allocator& get_node_allocator();
 
         void copy_tree(base_node_type** this_node, base_node_type* rhs_node);
-        void delete_subtree(base_node_type* node);
+        void delete_subtree(base_node_type* node) noexcept;
         
         template<class... Args>
         std::pair<base_node_type*, bool> insert(Args&&... args);
+        std::pair<base_node_type*, bool> insert(const key_type& value);
+        std::pair<base_node_type*, bool> insert(key_type&& value);
+        size_type insert_node(node_type* node);
+
         size_type erase(const key_type& value);
+        base_node_type* erase(base_node_type* node);
+        void remove_rebalancing(base_node_type* need_erase);
+
         base_node_type* find(const key_type& value) const;
 
         base_node_type* find_max(base_node_type *node) const;
         base_node_type* find_min(base_node_type *node) const;
-        base_node_type* find_max() const;
-        base_node_type* find_min() const;
+        base_node_type* find_max() const noexcept;
+        base_node_type* find_min() const noexcept;
         base_node_type* lower_bound(const key_type& value) const;
         base_node_type* upper_bound(const key_type& value) const;
 

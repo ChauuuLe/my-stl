@@ -26,7 +26,7 @@ namespace mystd {
 
     template<class Key>
     rb_tree_iterator& rb_tree_iterator<Key>::operator++(void) {
-        this->ptr = this->ptr->next();
+        this->ptr = static_cast<node_type*>(this->ptr)->next();
 
         return *this;
     }
@@ -34,14 +34,14 @@ namespace mystd {
     template<class Key>
     rb_tree_iterator rb_tree_iterator<Key>::operator++(int) {
         rb_tree_iterator tmp = *this;
-        this->ptr = this->ptr->next();
+        this->ptr = static_cast<node_type*>(this->ptr)->next();
 
         return tmp;
     }
 
     template<class Key>
     rb_tree_iterator& rb_tree_iterator<Key>::operator--(void) {
-        this->ptr = this->ptr->prev();
+        this->ptr = static_cast<node_type*>(this->ptr)->prev();
 
         return *this;
     }
@@ -49,7 +49,7 @@ namespace mystd {
     template<class Key>
     rb_tree_iterator rb_tree_iterator<Key>::operator--(int) {
         rb_tree_iterator tmp = *this;
-        this->ptr = this->ptr->prev();
+        this->ptr = static_cast<node_type*>(this->ptr)->prev();
 
         return tmp;
     }

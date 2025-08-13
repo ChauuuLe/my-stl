@@ -75,7 +75,7 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > rb_tree& rb_tree<Key, Compare, Allocator>::operator=(const rb_tree& rhs) {
+    > rb_tree<Key, Compare, Allocator>& rb_tree<Key, Compare, Allocator>::operator=(const rb_tree& rhs) {
         if constexpr(std::allocator_traits<node_allocator>::propagate_on_container_copy_assignment::value) {
             node_allocator old_alloc = *this;
             node_allocator& this_allocator = this->get_node_allocator();
@@ -121,7 +121,9 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > rb_tree& rb_tree<Key, Compare, Allocator>::operator=(rb_tree&& rhs) {
+    > rb_tree<Key, Compare, Allocator>& rb_tree<Key, Compare, Allocator>::operator=(rb_tree&& rhs)
+        noexcept(std::allocator_traits<Allocator>::is_always_equal::value
+                && std::is_nothrow_move_assignable<Compare>::value) {
         if constexpr(std::allocator_traits<node_allocator>::propagate_on_container_move_assignment::value) {
             node_allocator& this_allocator = this->get_node_allocator();
             this_allocator = rhs.get_node_allocator();
@@ -141,6 +143,32 @@ namespace mystd {
         
         rhs.init_header();
         rhs.node_count = 0;
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > void rb_tree<Key, Compare, Allocator>::swap(rb_tree& other)
+        noexcept(std::allocator_traits<Allocator>::is_always_equal::value
+                && std::is_nothrow_move_assignable<Compare>::value) {
+        std::swap(this->size, other.size);
+        std::swap(compare, other.compare);
+        if constexpr (std::allocator_traits<Allocator>::propagate_on_container_swap::value) {
+            std::swap(get_node_allocator(), other.get_node_allocator());
+        }
+
+        if (this->header.left == &(this->header)) {
+            this->header.left = &(other.header);
+            this->header.right = &(other.header);
+        }
+
+        if (other.header.right == &(other.header)) {
+            other.header.left = &(this->header);
+            other.header.right = &(this->header);
+        }
+
+        std::swap(this->header, other.header);
     }
 
     template<
@@ -211,7 +239,7 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > void delete_subtree(base_node_type* node) {
+    > void delete_subtree(base_node_type* node) noexcept {
         if (!node) {
             return;
         }
@@ -459,7 +487,7 @@ namespace mystd {
             }
         }
 
-        if noexcept(std::is_move_constructible_v<Key>) {
+        if constexpr (std::is_move_constructible_v<Key>) {
             traverse = this->make_node(is_left, RED, cur_parent, std::move(value));
         } else {
             traverse = this->make_node(is_left, RED, cur_parent, value);
@@ -478,6 +506,163 @@ namespace mystd {
 
         this->node_count++;
         return std::pair<base_node_type*, bool>(traverse, true);
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > template<class... Args> 
+    std::pair<base_node_type*, bool> rb_tree<Key, Compare, Allocator>::insert(const key_type& value) {
+        if (!this->header.parent) {
+            this->header.parent = this->make_node(false, BLACK, nullptr, value);
+            this->header.left = this->header.right = this->header.parent;
+            this->header.parent->parent = &this->header;
+
+            this->node_count++;
+ 
+            return std::pair<base_node_type*, bool> (this->header.parent, true);
+        }
+
+        base_node_type *traverse = this->header.parent;
+        base_node_type *cur_parent;
+        bool is_left = false;
+
+        while (traverse) {
+            cur_parent = traverse;
+
+            if (compare(value, noep(traverse)->value)) {
+                is_left = true;
+                traverse = traverse->left;
+            } else (compare(noep(traverse)->value, value)){
+                is_left = false;
+                traverse = trarverse->right;
+            } else {
+                return std::pair<base_node_type*, bool>(traverse, false);
+            }
+        }
+
+        
+        traverse = this->make_node(is_left, RED, cur_parent, value);
+        
+        fix_up_insert(traverse, is_left);
+
+        // Update min max of the tree
+        if (traverse->parent == this->header.left && is_left) {
+            this->header.left = traverse;
+        }
+
+        if (traverse->parent == this->header.right && !is_left) {
+            this->header.right = traverse;
+        }
+
+        this->node_count++;
+        return std::pair<base_node_type*, bool>(traverse, true);
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > template<class... Args> 
+    std::pair<base_node_type*, bool> rb_tree<Key, Compare, Allocator>::insert(key_type&& value) {
+        if (!this->header.parent) {
+            this->header.parent = this->make_node(false, BLACK, nullptr, std::move(value));
+            this->header.left = this->header.right = this->header.parent;
+            this->header.parent->parent = &this->header;
+
+            this->node_count++;
+ 
+            return std::pair<base_node_type*, bool> (this->header.parent, true);
+        }
+
+        base_node_type *traverse = this->header.parent;
+        base_node_type *cur_parent;
+        bool is_left = false;
+
+        while (traverse) {
+            cur_parent = traverse;
+
+            if (compare(value, noep(traverse)->value)) {
+                is_left = true;
+                traverse = traverse->left;
+            } else (compare(noep(traverse)->value, value)){
+                is_left = false;
+                traverse = trarverse->right;
+            } else {
+                return std::pair<base_node_type*, bool>(traverse, false);
+            }
+        }
+
+        
+        traverse = this->make_node(is_left, RED, cur_parent, std::move(value));
+        
+        fix_up_insert(traverse, is_left);
+
+        // Update min max of the tree
+        if (traverse->parent == this->header.left && is_left) {
+            this->header.left = traverse;
+        }
+
+        if (traverse->parent == this->header.right && !is_left) {
+            this->header.right = traverse;
+        }
+
+        this->node_count++;
+        return std::pair<base_node_type*, bool>(traverse, true);
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > template<class... Args> 
+    typename rb_tree<Key, Compare, Allocator>::size_type
+        rb_tree<Key, Compare, Allocator>::insert_node(node_type* node) {
+        if (!this->header.parent) {
+            this->header.parent = node;
+            this->header.left = this->header.right = this->header.parent;
+            this->header.parent->parent = &this->header;
+
+            this->node_count++;
+ 
+            return 1;
+        }
+
+        base_node_type *traverse = this->header.parent;
+        base_node_type *cur_parent;
+        bool is_left = false;
+
+        while (traverse) {
+            cur_parent = traverse;
+
+            if (compare(node->value, noep(traverse)->value)) {
+                is_left = true;
+                traverse = traverse->left;
+            } else (compare(noep(traverse)->value, value)){
+                is_left = false;
+                traverse = trarverse->right;
+            } else {
+                return 0;
+            }
+        }
+
+        
+        traverse = node;
+        
+        fix_up_insert(traverse, is_left);
+
+        // Update min max of the tree
+        if (traverse->parent == this->header.left && is_left) {
+            this->header.left = traverse;
+        }
+
+        if (traverse->parent == this->header.right && !is_left) {
+            this->header.right = traverse;
+        }
+
+        this->node_count++;
+        return 1;
     }
 
     template<
@@ -532,7 +717,8 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::find_min() const {
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type*
+            rb_tree<Key, Compare, Allocator>::find_min() const noexcept {
         return this->header.left;
     }
 
@@ -540,7 +726,8 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::base_node_type* rb_tree<Key, Compare, Allocator>::find_max() const {
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type*
+            rb_tree<Key, Compare, Allocator>::find_max() const noexcept {
         return this->header.right;
     }
 
@@ -691,12 +878,7 @@ namespace mystd {
         class Key,
         class Compare,
         class Allocator
-    > typename rb_tree<Key, Compare, Allocator>::size_type rb_tree<Key, Compare, Allocator>::erase(const key_type& value) {
-        base_node_type *need_erase = this->find(value);
-        if (!need_erase) {
-            return 0;
-        }
-
+    > void rb_tree<Key, Compare, Allocator>::remove_rebalancing(base_node_type *need_erase) {
         // Update min max of the tree
         if (need_erase == this->header.left) {
             if (need_erase->right) {
@@ -756,9 +938,36 @@ namespace mystd {
             fix_up_delete(cur_replaced_pos);
         }
 
-        this->free_node(need_erase);
         this->node_count--;
+    }
 
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > typename rb_tree<Key, Compare, Allocator>::size_type rb_tree<Key, Compare, Allocator>::erase(const key_type& value) {
+        base_node_type *need_erase = this->find(value);
+        if (!need_erase) {
+            return 0;
+        }
+
+        this->remove_rebalancing(need_erase);
+        
+        this->free_node(need_erase);
         return 1;
+    }
+
+    template<
+        class Key,
+        class Compare,
+        class Allocator
+    > typename rb_tree<Key, Compare, Allocator>::base_node_type*
+        rb_tree<Key, Compare, Allocator>::erase(base_node_type *node) {
+        base_node_type *next_node = node->next();
+
+        this->remove_rebalancing(node);
+        
+        this->free_node(node);
+        return next_node;
     }
 };

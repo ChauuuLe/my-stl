@@ -26,6 +26,7 @@ namespace mystd {
 
         template<class... Args>
         rb_tree_node(Args&&... value_args);
+        rb_tree_node(rb_tree_node&& node);
 
         rb_tree_node_base* get_sibling() const;
         void change_color();
