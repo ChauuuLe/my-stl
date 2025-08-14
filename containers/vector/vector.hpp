@@ -19,12 +19,11 @@
 
 namespace mystd {
     template<class T, class Allocator = std::allocator<T>>
-    class vector {
+    class vector: private Allocator {
     private:
         size_t nelem;
         size_t cap;
         T *elems;
-        Allocator allocator;
     public:
         using value_type = T;
         using allocator_type = Allocator;
@@ -66,9 +65,6 @@ namespace mystd {
         allocator_type get_allocator() const;
 
         void assign(size_type count, const value_type& value);
-        // template<class InputIt>
-        // void assign(InputIt first, Input last);
-        // void assign(std::initializer_list<T> ilist);
 
         /*Ctors*/
         vector();
