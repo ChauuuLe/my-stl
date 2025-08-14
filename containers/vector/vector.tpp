@@ -134,7 +134,7 @@ namespace mystd {
     /*Member function*/
     template<class T, class Allocator>
     typename vector<T, Allocator>::allocator_type vector<T, Allocator>::get_allocator() const {
-        return allocator_type(*static_cast<*allocator_type>(*this));
+        return allocator_type(*static_cast<*allocator_type>(this));
     }
 
     template<class T, class Allocator>
@@ -193,14 +193,14 @@ namespace mystd {
 
     /*Ctors*/
     template<class T, class Allocator>
-    vector<T, Allocator>::vector(): allocator(Allocator()), elems(nullptr), nelem(0), cap(0) {}
+    vector<T, Allocator>::vector(): Allocator(Allocator()), elems(nullptr), nelem(0), cap(0) {}
 
     template<class T, class Allocator>
-    vector<T, Allocator>::vector(const Allocator& alloc): allocator(alloc), elems(nullptr), nelem(0), cap(0) {}
+    vector<T, Allocator>::vector(const Allocator& alloc): Allocator(alloc), elems(nullptr), nelem(0), cap(0) {}
 
     template<class T, class Allocator>
     vector<T, Allocator>::vector(size_type count, const Allocator& alloc)
-        : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
+        : Allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
 
         try {
             this->elems = std::allocator_traits<Allocator>::allocate(*this, count);
@@ -217,7 +217,7 @@ namespace mystd {
 
     template<class T, class Allocator>
     vector<T, Allocator>::vector(size_type count, const value_type& value, const Allocator& alloc)
-        : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
+        : Allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
 
         try {
             this->elems = std::allocator_traits<Allocator>::allocate(*this, count);
@@ -235,7 +235,7 @@ namespace mystd {
     template<class T, class Allocator>
     template<class InputIt, class = mystd::enable_if_t<!is_integral<InputIt>::value>>
     vector<T, Allocator>::vector(InputIt first, InputIt last, const Allocator& alloc)
-        : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
+        : Allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)) {
         
         try {
             this->nelem = std::distance(first, last);
@@ -252,8 +252,9 @@ namespace mystd {
 
     template<class T, class Allocator>
     vector<T, Allocator>::vector(const vector& other)
-        : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(other.get_allocator())) {
-        
+        : Allocator(
+            std::allocator_traits<Allocator>::select_on_container_copy_construction(*static_cast<Allocator*>(&other))
+        ) {
         try {
             this->nelem = other.nelem;
             this->elems = std::allocator_traits<Allocator>::allocate(*this, this->nelem);
@@ -269,7 +270,8 @@ namespace mystd {
     template<class T, class Allocator>
     vector<T, Allocator>::vector(vector&& other) noexcept(std::allocator_traits<Allocator>::is_always_equal::value ||
                                                             std::is_nothrow_move_constructible_v<Allocator>)
-        : allocator(std::move(other.allocator)), nelem(other.nelem), cap(other.cap), elems(other.elems) {
+        : Allocator(std::move(*static_cast<Allocator*>(&other))),
+            nelem(other.nelem), cap(other.cap), elems(other.elems) {
         other.elems = nullptr;
         other.nelem = 0;
         other.cap = 0;
@@ -277,7 +279,7 @@ namespace mystd {
 
     template<class T, class Allocator>
     vector<T, Allocator>::vector(std::initializer_list<value_type> init, const Allocator& alloc)
-        : allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)),
+        : Allocator(std::allocator_traits<Allocator>::select_on_container_copy_construction(alloc)),
           nelem(init.size()), cap(init.size()) {
 
         try {
@@ -626,7 +628,7 @@ namespace mystd {
         std::swap(this->nelem, other.nelem);
 
         if constexpr(std::allocator_traits<allocator_type>::propagate_on_container_swap::value) {
-            std::swap(*this, other.allocator);
+            std::swap(*this, other.get_allocator());
         }
     }
 
