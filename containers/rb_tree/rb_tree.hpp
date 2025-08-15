@@ -13,16 +13,20 @@ namespace mystd {
 
     template<
         class Key,
-        class Compare = mystd::less<Key>,
-        class Allocator = std::allocator<Key>
+        class Value,
+        class KeyOfVal,
+        class Compare,
+        class Allocator
     > struct rb_tree : private node_alloc<Allocator, Key> {
         using key_type = Key;
+        using value_type = Value;
+        using key_of_val = KeyOfVal;
         using allocator_type = Allocator;
         using key_compare = Compare;
-        using node_type = typename rb_tree_node<Key>;
+        using node_type = typename rb_tree_node<value_type>;
         using base_node_type = rb_tree_node_base;
         using size_type = size_t;
-        using node_allocator = node_allocator<Allocator, Key>;
+        using node_allocator = node_allocator<Allocator, value_type>;
 
         /*
         Root is header parent
@@ -56,22 +60,22 @@ namespace mystd {
         
         template<class... Args>
         std::pair<base_node_type*, bool> insert(Args&&... args);
-        std::pair<base_node_type*, bool> insert(const key_type& value);
-        std::pair<base_node_type*, bool> insert(key_type&& value);
+        std::pair<base_node_type*, bool> insert(const value_type& value);
+        std::pair<base_node_type*, bool> insert(value_type&& value);
         size_type insert_node(node_type* node);
 
-        size_type erase(const key_type& value);
+        size_type erase(const value_type& value);
         base_node_type* erase(base_node_type* node);
         void remove_rebalancing(base_node_type* need_erase);
 
-        base_node_type* find(const key_type& value) const;
+        base_node_type* find(const value_type& value) const;
 
         base_node_type* find_max(base_node_type *node) const;
         base_node_type* find_min(base_node_type *node) const;
         base_node_type* find_max() const noexcept;
         base_node_type* find_min() const noexcept;
-        base_node_type* lower_bound(const key_type& value) const;
-        base_node_type* upper_bound(const key_type& value) const;
+        base_node_type* lower_bound(const value_type& value) const;
+        base_node_type* upper_bound(const value_type& value) const;
 
         template<class... Args>
         base_node_type* make_node(bool is_left, bool color, base_node_type *parent, Args&&... args);
@@ -80,10 +84,11 @@ namespace mystd {
         void init_nil(base_node_type& nil);
         void init_header();
 
-        const base_node_type* base(const node_type* node) const;
-        const node_type* noep(const base_node_type* node) const;
-        base_node_type* base(node_type* node) const;
-        node_type* noep(base_node_type* node) const;
+        const base_node_type* base(const node_type* node) const noexcept;
+        const node_type* noep(const base_node_type* node) const noexcept;
+        base_node_type* base(node_type* node) const noexcept;
+        node_type* noep(base_node_type* node) const noexcept;
+        key_type get_key(const value_type& val) const noexcept;
 
         bool is_black(base_node_type *node);
         void flip_color(base_node_type *node);

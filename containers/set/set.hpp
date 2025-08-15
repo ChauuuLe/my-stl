@@ -35,7 +35,6 @@ namespace mystd {
 
         using node_type = rb_tree_node<Key>;
         using base_type = rb_tree_node_base;
-        using rb_tree = mystd::rb_tree<Key, Compare, Allocator>;
 
         struct return_node {
             iterator position;
@@ -49,7 +48,14 @@ namespace mystd {
         using insert_return_type = return_node;
     
     private:
-        rb_tree tree;
+        struct Identity {
+            key_type operator()(const value_type& val) const noexcept {
+                return val;
+            }
+        };
+
+        rb_tree<key_type, value_type, Identity, value_compare, Allocator> tree;
+
     public:
         /*Iterator*/
         iterator begin();
@@ -108,8 +114,8 @@ namespace mystd {
         iterator lower_bound(const Key& key);
         const_iterator lower_bound(const Key& key) const;
 
-        iterator upper_bound( const Key& key );
-        const_iterator upper_bound( const Key& key ) const;
+        iterator upper_bound(const Key& key);
+        const_iterator upper_bound(const Key& key) const;
 
         key_compare key_comp() const;
 
