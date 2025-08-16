@@ -657,13 +657,4 @@ namespace mystd {
     > bool operator==(const map<Key, T, Compare, Allocator>& lhs, const map<Key, T, Compare, Allocator>& rhs) {
         return equal(lhs.begin(), lhs.end(), rhs.begin());
     }
-
-    template<
-        class Key,
-        class T,
-        class Compare,
-        class Allocator
-    > bool operator<=>(const map<Key, T, Compare, Allocator>& lhs, const map<Key, T, Compare, Allocator>& rhs) {
-        return equal(lhs.begin(), lhs.end(), rhs.begin());
-    }
 }
