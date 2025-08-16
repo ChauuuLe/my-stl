@@ -133,7 +133,7 @@ namespace mystd {
     
     /*Member function*/
     template<class T, class Allocator>
-    typename vector<T, Allocator>::allocator_type vector<T, Allocator>::get_allocator() const {
+    typename vector<T, Allocator>::allocator_type vector<T, Allocator>::get_allocator() const noexcept {
         return allocator_type(*static_cast<*allocator_type>(this));
     }
 

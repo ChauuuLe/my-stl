@@ -62,7 +62,7 @@ namespace mystd {
         }
     public:
         /*Member functions*/
-        allocator_type get_allocator() const;
+        allocator_type get_allocator() const noexcept;
 
         void assign(size_type count, const value_type& value);
 

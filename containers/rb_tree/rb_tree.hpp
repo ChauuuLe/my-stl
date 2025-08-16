@@ -51,17 +51,23 @@ namespace mystd {
         void swap(rb_tree& other) noexcept(std::allocator_traits<Allocator>::is_always_equal::value
                 && std::is_nothrow_move_assignable<Compare>::value);
 
-        allocator_type get_allocator() const;
-        const node_allocator& get_node_allocator() const;
-        node_allocator& get_node_allocator();
+        allocator_type get_allocator() const noexcept;
+        const node_allocator& get_node_allocator() const noexcept;
+        node_allocator& get_node_allocator() noexcept;
+
+        size_type size() const noexcept;
+        size_type max_size() const noexcept;
 
         void copy_tree(base_node_type** this_node, base_node_type* rhs_node);
         void delete_subtree(base_node_type* node) noexcept;
+
+        void clear() noexcept;
         
         template<class... Args>
         std::pair<base_node_type*, bool> insert(Args&&... args);
         std::pair<base_node_type*, bool> insert(const value_type& value);
         std::pair<base_node_type*, bool> insert(value_type&& value);
+        std::pair<base_node_type*, bool> insert(node_type&& node);
         size_type insert_node(node_type* node);
 
         size_type erase(const value_type& value);
@@ -69,6 +75,7 @@ namespace mystd {
         void remove_rebalancing(base_node_type* need_erase);
 
         base_node_type* find(const value_type& value) const;
+        base_node_type* find(const key_type& key) const;
 
         base_node_type* find_max(base_node_type *node) const;
         base_node_type* find_min(base_node_type *node) const;

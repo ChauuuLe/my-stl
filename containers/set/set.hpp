@@ -120,7 +120,7 @@ namespace mystd {
         key_compare key_comp() const;
 
         /*Member functions*/
-        allocator_type get_allocator() const;
+        allocator_type get_allocator() const noexcept;
 
         set& operator=(const set& other);
         set& operator=(set&& other)
@@ -128,7 +128,6 @@ namespace mystd {
                 && std::is_nothrow_move_assignable<Compare>::value);
 
         /*Ctor and dtor*/
-        explicit set(const Compare& comp);
         set() : set(Compare()) {}
         explicit set(const Compare& comp,
               const Allocator& alloc = Allocator());
