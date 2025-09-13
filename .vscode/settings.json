@@ -46,7 +46,8 @@
         "iostream": "cpp",
         "istream": "cpp",
         "rb_tree": "cpp",
-        "set": "cpp"
+        "set": "cpp",
+        "cstring": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
