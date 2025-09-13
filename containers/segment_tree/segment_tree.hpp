@@ -1,13 +1,13 @@
 #pragma once
 
 namespace mystd {
-template<class T>
+    template<class T>
     class segment_tree {
     private:
-        using merge_type = T(T&, T&);
+        using merge_type = T(const T&, const T&);
         struct query {
             int left_query, right_query;
-            T& value;
+            T value;
             std::function<merge_type> update_op;
 
             template<class... Args>
@@ -60,11 +60,11 @@ template<class T>
         }
     public:
         segment_tree(int n, const T& val, const std::function<merge_type>& f): 
-                nelem(n), nodes(4 * n + 1, val), merge(f) {}
+                nelem(n), nodes(4 * n + 7, val), merge(f) {}
 
         template<class... Args>
         segment_tree(int n, const T& val, Args&&... args):
-                nelem(n), nodes(4 * n + 1, val), merge(std::forward<Args>(args)...) {}
+                nelem(n), nodes(4 * n + 7, val), merge(std::forward<Args>(args)...) {}
 
         segment_tree() : nelem(0),
             merge([](T& x, T& y) {
@@ -80,7 +80,7 @@ template<class T>
 
         void update(int left_query, int right_query, const T& value, const std::function<merge_type>& update_op)  {
             query this_query = query(left_query, right_query, value, update_op);
-
+            
             _update(1, 1, this->nelem, this_query);
         }
         
