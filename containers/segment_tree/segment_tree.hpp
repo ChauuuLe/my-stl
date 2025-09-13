@@ -7,17 +7,17 @@ namespace mystd {
         using merge_type = T(const T&, const T&);
         struct query {
             int left_query, right_query;
-            T value;
+            const T& value;
             std::function<merge_type> update_op;
 
             template<class... Args>
-            query(int left_query, int right_query, T value, Args&&... args) :
+            query(int left_query, int right_query, const T& value, Args&&... args) :
                 left_query(left_query), right_query(right_query), value(value), update_op(std::forward<Args>(args)...) {}
 
-            query(int left_query, int right_query, T value, const std::function<merge_type>& update_op) :
+            query(int left_query, int right_query, const T& value, const std::function<merge_type>& update_op) :
                 left_query(left_query), right_query(right_query), value(value), update_op(update_op) {}
             
-            query(int left_query, int right_query, T value) :
+            query(int left_query, int right_query, const T& value) :
                 left_query(left_query), right_query(right_query), value(value) {}
         };
         
