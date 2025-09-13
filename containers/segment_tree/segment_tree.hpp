@@ -1,17 +1,18 @@
 #pragma once
 
 namespace mystd {
-    template<class T>
+template<class T>
     class segment_tree {
     private:
-        using merge_type = T&(const T&, const T&);
+        using merge_type = T(T&, T&);
         struct query {
             int left_query, right_query;
             T& value;
-            std::function<merge_type>& update_op;
+            std::function<merge_type> update_op;
 
-            query(int left_query, int right_query, T value, std::function<merge_type>&& update_op) :
-                left_query(left_query), right_query(right_query), value(value), update_op(std::move(update_op)) {}
+            template<class... Args>
+            query(int left_query, int right_query, T value, Args&&... args) :
+                left_query(left_query), right_query(right_query), value(value), update_op(std::forward<Args>(args)...) {}
 
             query(int left_query, int right_query, T value, const std::function<merge_type>& update_op) :
                 left_query(left_query), right_query(right_query), value(value), update_op(update_op) {}
@@ -34,8 +35,8 @@ namespace mystd {
             }
 
             int mid = l + (r - l) / 2;
-            _update(id * 2, l, mid);
-            _update(id * 2 + 1, mid + 1, r);
+            _update(id * 2, l, mid, this_query);
+            _update(id * 2 + 1, mid + 1, r, this_query);
 
             this->nodes[id] = this->merge(this->nodes[id * 2], this->nodes[id * 2 + 1]);
         }
@@ -49,17 +50,30 @@ namespace mystd {
             }
 
             int mid = l + (r - l) / 2;
+            T left = _get(id * 2, l, mid, this_query);
+            T right = _get(id * 2 + 1, mid + 1, r, this_query);
+
             return this->merge(
-                _get(id * 2, l, mid, this_query.value),
-                _get(id * 2 + 1, mid + 1, r, this_query.value)
+                left,
+                right
             );
         }
     public:
-        segment_tree(int n, std::function<merge_type> f = std::max<T>): nelem(n), nodes(4 * n + 1) {}
-        segment_tree() : nelem(0), merge(std::max<T>) {}
+        segment_tree(int n, const T& val, const std::function<merge_type>& f): 
+                nelem(n), nodes(4 * n + 1, val), merge(f) {}
+
+        template<class... Args>
+        segment_tree(int n, const T& val, Args&&... args):
+                nelem(n), nodes(4 * n + 1, val), merge(std::forward<Args>(args)...) {}
+
+        segment_tree() : nelem(0),
+            merge([](T& x, T& y) {
+                return std::max(x, y);
+            }) {}
         
-        void update(int left_query, int right_query, const T& value, std::function<merge_type>&& update_op)  {
-            query this_query = query(left_query, right_query, value, std::move(update_op));
+        template<class... Args>    
+        void update(int left_query, int right_query, const T& value, Args&&... args)  {
+            query this_query = query(left_query, right_query, value, std::forward<Args>(args)...);
 
             _update(1, 1, this->nelem, this_query);
         }
@@ -71,6 +85,10 @@ namespace mystd {
         }
         
         T get(int left_query, int right_query, const T& default_value) {
+            if (left_query > right_query) {
+                return default_value;
+            }
+            
             query this_query = query(left_query, right_query, default_value);
 
             return _get(1, 1, this->nelem, this_query);
